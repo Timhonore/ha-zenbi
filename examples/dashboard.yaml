@@ -1,0 +1,29 @@
+# Erstat alle entity-id'er med de faktiske id'er fra din HA-installation.
+type: vertical-stack
+cards:
+  - type: entities
+    title: Skoleoverblik
+    entities:
+      - entity: sensor.zenbi_romalt_friskole_ulaeste_beskeder
+      - entity: sensor.zenbi_romalt_friskole_alle_lektier
+      - entity: sensor.zenbi_romalt_friskole_datastatus
+      - entity: button.zenbi_romalt_friskole_opdater
+  - type: markdown
+    title: Lektier
+    content: >-
+      {% set items = state_attr('sensor.zenbi_romalt_friskole_alle_lektier', 'items') %}
+      {% if items is none %}
+      Lektier kunne ikke hentes.
+      {% elif items | length == 0 %}
+      Ingen kommende lektier i den hentede periode.
+      {% else %}
+      {% for item in items %}
+      **{{ item.title }} — {{ item.date[:10] if item.date else '' }}**
+
+      {{ item.text }}
+
+      {% endfor %}
+      {% endif %}
+  - type: calendar
+    entities:
+      - calendar.zenbi_romalt_friskole_kalender

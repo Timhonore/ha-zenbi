@@ -1,0 +1,21 @@
+# Tilpas sensorens entity-id. Notify-target svarer til din HA-telefon.
+# Ingen besked ved opstart/unknown/unavailable; kun ved en stigning fra et tal.
+alias: Zenbi - nye ulæste beskeder
+triggers:
+  - trigger: state
+    entity_id: sensor.zenbi_romalt_friskole_ulaeste_beskeder
+conditions:
+  - condition: template
+    value_template: >-
+      {{ trigger.from_state is not none
+         and trigger.to_state is not none
+         and is_number(trigger.from_state.state)
+         and is_number(trigger.to_state.state)
+         and trigger.to_state.state | int > trigger.from_state.state | int }}
+actions:
+  - action: notify.mobile_app_thoneplus
+    data:
+      title: Nyt fra skolen
+      message: >-
+        Der er nu {{ trigger.to_state.state }} ulæste beskedelementer i Zenbi.
+mode: single

@@ -1,0 +1,52 @@
+{
+  "title": "Zenbi",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Sign in to Zenbi",
+        "description": "Use your normal Zenbi credentials. Only tokens are saved. Two-factor login and passkeys are not supported in this beta.",
+        "data": {
+          "username": "Email address",
+          "password": "Password"
+        }
+      },
+      "organization": {
+        "title": "Choose school",
+        "data": {
+          "organization_id": "School / organization"
+        }
+      },
+      "children": {
+        "title": "Choose children",
+        "description": "Select relations to create sensors and calendars for.",
+        "data": {
+          "children": "Children / relations"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Zenbi rejected the credentials. Check your login and any password-change requirement.",
+      "cannot_connect": "Cannot connect to Zenbi or recognize the response. Try again later."
+    },
+    "abort": {
+      "already_configured": "This account is already configured.",
+      "unsupported_two_factor": "Zenbi requires another login step. Two-factor login and passkeys are not supported in this beta.",
+      "login_expired": "Login expired. Start setup or authentication again.",
+      "wrong_account": "Use the same Zenbi account and school as the original setup.",
+      "reauth_successful": "Authentication updated.",
+      "reconfigure_successful": "Relations updated.",
+      "cannot_connect": "Cannot retrieve relations from Zenbi."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Polling and date range",
+        "data": {
+          "scan_interval": "Polling interval (minutes)",
+          "days_ahead": "Days ahead"
+        }
+      }
+    }
+  }
+}

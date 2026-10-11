@@ -1,0 +1,52 @@
+{
+  "title": "Zenbi",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Log ind på Zenbi",
+        "description": "Indtast dit normale Zenbi-login. Kun tokens gemmes efter login. Denne beta understøtter endnu ikke totrinslogin eller passkeys.",
+        "data": {
+          "username": "E-mail adresse",
+          "password": "Adgangskode"
+        }
+      },
+      "organization": {
+        "title": "Vælg skole",
+        "data": {
+          "organization_id": "Skole / organisation"
+        }
+      },
+      "children": {
+        "title": "Vælg børn",
+        "description": "Vælg de relationer, du ønsker sensorer og kalendere for.",
+        "data": {
+          "children": "Børn / relationer"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Zenbi afviste login. Kontrollér oplysningerne og eventuelt krav om skift af adgangskode.",
+      "cannot_connect": "Kunne ikke forbinde eller genkende Zenbis datasvar. Prøv igen senere."
+    },
+    "abort": {
+      "already_configured": "Kontoen er allerede konfigureret.",
+      "unsupported_two_factor": "Zenbi kræver et ekstra logintrin. Totrinslogin og passkeys understøttes endnu ikke i denne testversion.",
+      "login_expired": "Login er udløbet. Start opsætningen eller login igen.",
+      "wrong_account": "Brug den samme Zenbi-konto og skole som ved den oprindelige opsætning.",
+      "reauth_successful": "Login er opdateret.",
+      "reconfigure_successful": "Relationerne er opdateret.",
+      "cannot_connect": "Kunne ikke hente relationerne fra Zenbi."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opdatering og periode",
+        "data": {
+          "scan_interval": "Opdateringsinterval (minutter)",
+          "days_ahead": "Dage frem"
+        }
+      }
+    }
+  }
+}
