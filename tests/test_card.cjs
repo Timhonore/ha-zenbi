@@ -1,0 +1,322 @@
+/* Browser smoke tests with synthetic entities only; no live school data. */
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const { chromium } = require(process.env.ZENBI_PLAYWRIGHT || "playwright");
+const root = path.resolve(__dirname, "..");
+(async () => {
+  const browser = await chromium.launch({
+    headless: true,
+    channel: "chromium",
+    args: ["--no-sandbox"],
+  });
+  const page = await browser.newPage({ viewport: { width: 600, height: 950 } });
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.route("http://zenbi.test/**", (route) =>
+    route.fulfill(
+      route.request().url().endsWith("icon.png")
+        ? {
+            contentType: "image/png",
+            body: fs.readFileSync(
+              path.join(root, "custom_components/zenbi/brand/icon.png"),
+            ),
+          }
+        : {
+            contentType: "text/html",
+            body: '<!doctype html><html><body style="margin:0;padding:24px;background:#f0f4f7;font-family:system-ui,sans-serif;--primary-text-color:#193140;--secondary-text-color:#74828d;--divider-color:#e7edf1;"></body></html>',
+          },
+    ),
+  );
+  await page.goto("http://zenbi.test/");
+  await page.evaluate(() => {
+    const paths = {
+      refresh: "M17.7 6.3A8 8 0 1 0 20 12h-2a6 6 0 1 1-1.8-4.2L13 11h9V2z",
+      "email-outline":
+        "M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4-8 5-8-5V6l8 5 8-5zm0 10H4v-8l8 5 8-5z",
+      "calendar-outline":
+        "M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 16H5V9h14z",
+      "book-open-page-variant":
+        "M21 4c-2-1-5-1-9 1-4-2-7-2-9-1v15c3-1 6-1 9 1 3-2 6-2 9-1zm-10 14c-2-1-4-1-6-1V6c2-.4 4 0 6 1zm8-1c-2 0-4 0-6 1V7c2-1 4-1.4 6-1z",
+      "view-week-outline": "M3 4v16h18V4zm5 14H5V6h3zm6 0h-4V6h4zm5 0h-3V6h3z",
+      "chevron-down": "m7 10 5 5 5-5-1.4-1.4-3.6 3.6-3.6-3.6z",
+      "arrow-top-right": "M5 5v2h10L5 17l2 2L17 9v10h2V5z",
+      "bulletin-board":
+        "M3 3h18v18H3zm2 2v14h14V5zm2 2h4v4H7zm6 0h4v2h-4zm0 4h4v2h-4zm-6 4h10v2H7z",
+    };
+    customElements.define(
+      "ha-icon",
+      class extends HTMLElement {
+        connectedCallback() {
+          this.innerHTML = `<svg style="display:block;width:var(--mdc-icon-size,20px);height:var(--mdc-icon-size,20px);fill:currentColor" viewBox="0 0 24 24"><path d="${paths[this.getAttribute("icon")?.replace("mdi:", "")] || paths["book-open-page-variant"]}"></path></svg>`;
+        }
+      },
+    );
+    window.rows = [];
+    window.states = {};
+    const day = (n) => {
+      const d = new Date();
+      d.setDate(d.getDate() + n);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    };
+    const add = (kind, id, state, items, name, domain = "sensor") => {
+      const entity = `${domain}.demo_${kind}_${id}`;
+      rows.push({
+        entity_id: entity,
+        unique_id: `account:school:${kind}:${id}`,
+        platform: "zenbi",
+        config_entry_id: "entry-1",
+        original_name: name,
+      });
+      states[entity] = {
+        state: String(state),
+        attributes: {
+          friendly_name: name,
+          items,
+          senest_opdateret: new Date().toISOString(),
+        },
+      };
+      return entity;
+    };
+    const hw1 = {
+      id: "one",
+      title: "Læs kapitel 4 i læsebogen",
+      text: "Læs siderne 24–27 sammen med en voksen.\nTal om, hvad hovedpersonen oplever.",
+      date: day(1),
+    };
+    const hw2 = {
+      id: "two",
+      title: "Matematik · plus og minus",
+      text: "Lav opgaverne på side 12. Husk at tage bogen med i skole.",
+      date: day(2),
+    };
+    const task = {
+      id: "three",
+      title: "Husk tøj til idræt",
+      text: "Indendørssko og en drikkedunk.",
+      date: day(3),
+    };
+    const plan = {
+      id: "plan",
+      title: "Ugens plan · dansk og natur",
+      text: "Vi arbejder med fortællinger og undersøger efterårets farver.",
+      date: day(0),
+    };
+    add("homework", "all", 2, [hw1, hw2], "Alle lektier");
+    add("tasks", "all", 1, [task], "Alle opgaver");
+    add("homework", "freja", 1, [hw1], "Freja Lektier");
+    add("tasks", "freja", 0, [], "Freja Opgaver");
+    add("weekly_plans", "freja", 1, [plan], "Freja Ugeplaner");
+    add("homework", "oscar", 1, [hw2], "Oscar Lektier");
+    add("tasks", "oscar", 1, [task], "Oscar Opgaver");
+    add("weekly_plans", "oscar", 1, [plan], "Oscar Ugeplaner");
+    add(
+      "messages",
+      "all",
+      1,
+      [
+        {
+          id: "message",
+          title: "Information om efterårsugen",
+          text: "Vi glæder os til en uge med fælles aktiviteter.",
+          date: day(0),
+        },
+      ],
+      "Beskeder",
+    );
+    add("unread", "all", 2, [], "Ulæste beskeder");
+    add("posts", "all", 0, [], "Opslag");
+    add("status", "all", "ok", [], "Datastatus");
+    for (const id of ["all", "freja", "oscar"]) {
+      const e = `calendar.demo_${id}`;
+      rows.push({
+        entity_id: e,
+        unique_id: `account:school:calendar:${id === "all" ? "calendar" : "child_calendar"}:${id}`,
+        platform: "zenbi",
+        config_entry_id: "entry-1",
+        original_name: `${id} Kalender`,
+      });
+      states[e] = { state: "off", attributes: {} };
+    }
+    rows.push({
+      entity_id: "button.demo_refresh",
+      unique_id: "account:school:refresh",
+      platform: "zenbi",
+      config_entry_id: "entry-1",
+    });
+    states["button.demo_refresh"] = { state: "unknown", attributes: {} };
+    // HA buttons have a timestamp or unknown before first use; unknown is still pressable.
+    window.calls = [];
+    window.hass = {
+      connection: {},
+      states,
+      config: { time_zone: "Europe/Copenhagen" },
+      callWS: async () => rows,
+      callService: async (...args) => {
+        calls.push(args);
+      },
+      callApi: async (method, url) => [
+        {
+          summary: "Fælles morgenmad",
+          description: "Tag en kop med.",
+          start: { date: day(2) },
+          end: { date: day(3) },
+        },
+      ],
+    };
+  });
+  await page.addScriptTag({
+    content: fs.readFileSync(
+      path.join(root, "custom_components/zenbi/frontend/zenbi-card.js"),
+      "utf8",
+    ),
+  });
+  await page.evaluate(() => {
+    const card = document.createElement("zenbi-card");
+    card.id = "card";
+    card.setConfig({ type: "custom:zenbi-card", max_items: 2 });
+    card.hass = hass;
+    document.body.append(card);
+  });
+  const card = page.locator("zenbi-card");
+  await card.getByRole("button", { name: "Freja", exact: true }).waitFor();
+  assert.equal(await card.locator(".number").first().textContent(), "3");
+  assert.equal(
+    await card.locator(".number").nth(2).textContent(),
+    "1",
+    "Shared weekly plan is deduplicated",
+  );
+  await card
+    .getByRole("button", { name: "Opdater Zenbi", exact: true })
+    .click();
+  assert.equal(await page.evaluate(() => calls[0][0]), "button");
+  await card.getByRole("button", { name: "Freja", exact: true }).click();
+  assert.equal(await card.locator(".number").first().textContent(), "1");
+  assert.equal(
+    await card.locator(".item-title").first().textContent(),
+    "Læs kapitel 4 i læsebogen",
+  );
+  assert.equal(
+    await card.locator(".item").count(),
+    1,
+    "Other child homework is not displayed",
+  );
+  await card.locator("summary").click();
+  assert.equal(await card.locator("details[open]").count(), 1);
+  await page.evaluate(() => {
+    card.hass = {
+      ...hass,
+      states: { ...hass.states, "sensor.unrelated": { state: "on" } },
+    };
+  });
+  assert.equal(
+    await card.locator("details[open]").count(),
+    1,
+    "State updates preserve expanded text",
+  );
+  await card.locator("nav button[data-tab=messages]").click();
+  assert.equal(
+    await card.locator(".item-title").textContent(),
+    "Information om efterårsugen",
+  );
+  await card.locator("nav button[data-tab=calendar]").click();
+  await card.getByText("Fælles morgenmad", { exact: true }).waitFor();
+  await card.getByRole("button", { name: "Oscar", exact: true }).click();
+  await card.getByText("Fælles morgenmad", { exact: true }).waitFor();
+  await card.locator("nav button[data-tab=homework]").click();
+  await page.evaluate(() => {
+    const next = { ...hass.states };
+    next["sensor.demo_homework_oscar"] = {
+      ...next["sensor.demo_homework_oscar"],
+      state: "unavailable",
+    };
+    card.hass = { ...hass, states: next };
+  });
+  assert.equal(await card.locator(".number").first().textContent(), "—");
+  assert.match(await card.locator(".notice").textContent(), /utilgængelig/);
+  await page.evaluate(() => {
+    card.hass = hass;
+    states["sensor.demo_homework_oscar"].attributes.items[0].title =
+      '<img src=x onerror="window.injected=true">';
+    card.hass = {
+      ...hass,
+      states: {
+        ...states,
+        "sensor.demo_homework_oscar": {
+          ...states["sensor.demo_homework_oscar"],
+        },
+      },
+    };
+  });
+  assert.equal(
+    await card.locator(".item-title img").count(),
+    0,
+    "API text never renders HTML",
+  );
+  assert.equal(await page.evaluate(() => window.injected), undefined);
+  // Editor sends a valid config-changed event.
+  await page.evaluate(() => {
+    const editor = customElements.get("zenbi-card").getConfigElement();
+    editor.setConfig({ type: "custom:zenbi-card" });
+    editor.hass = hass;
+    editor.addEventListener(
+      "config-changed",
+      (e) => (window.editorConfig = e.detail.config),
+    );
+    document.body.append(editor);
+  });
+  await page
+    .locator("zenbi-card-editor input[data-key=title]")
+    .fill("Familiens skole");
+  await page.locator("zenbi-card-editor input[data-key=title]").blur();
+  assert.equal(
+    await page.evaluate(() => editorConfig.title),
+    "Familiens skole",
+  );
+  await page.evaluate(() => {
+    document.querySelector("zenbi-card-editor").remove();
+    states["sensor.demo_homework_oscar"].attributes.items[0].title =
+      "Matematik · plus og minus";
+    card.hass = { ...hass, states: { ...states } };
+    card._selected = "all";
+    card._showAll = true;
+    card._render();
+  });
+  if (process.env.ZENBI_SCREENSHOTS) {
+    fs.mkdirSync(path.join(root, "docs/images"), { recursive: true });
+    await card.screenshot({
+      path: path.join(root, "docs/images/zenbi-card-light.png"),
+    });
+  }
+  await page.setViewportSize({ width: 360, height: 1050 });
+  await page.evaluate(() => {
+    document.body.style.padding = "12px";
+  });
+  assert.equal(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+    true,
+    "No mobile page overflow",
+  );
+  await card.getByRole("button", { name: "Freja", exact: true }).click();
+  await page.evaluate(() => {
+    document.body.style.setProperty("--ha-card-background", "#19252e");
+    document.body.style.setProperty("--primary-text-color", "#e6eef4");
+    document.body.style.setProperty("--secondary-text-color", "#98a9b7");
+    document.body.style.setProperty("--divider-color", "#2e3c46");
+    document.body.style.background = "#101a22";
+  });
+  if (process.env.ZENBI_SCREENSHOTS)
+    await card.screenshot({
+      path: path.join(root, "docs/images/zenbi-card-dark-mobile.png"),
+    });
+  assert.deepEqual(errors, []);
+  await browser.close();
+  console.log(
+    "Zenbi card: discovery, child filtering, deduplication, calendar, unavailable states, escaping, editor and mobile layout passed.",
+  );
+})().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

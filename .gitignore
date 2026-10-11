@@ -6,3 +6,6 @@ __pycache__/
 *.env
 *credentials*
 *tokens*
+
+node_modules/
+package-lock.json

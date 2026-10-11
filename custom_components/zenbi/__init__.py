@@ -1,5 +1,8 @@
 """Zenbi Home Assistant integration."""
+from pathlib import Path
+
 from homeassistant.const import Platform
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.exceptions import ConfigEntryAuthFailed
 
@@ -8,6 +11,16 @@ from .const import CONF_DEVICE_ID, DOMAIN
 from .coordinator import ZenbiCoordinator
 
 PLATFORMS = [Platform.SENSOR, Platform.CALENDAR, Platform.BUTTON]
+
+
+async def async_setup(hass, config):
+    """Serve the bundled card once, also across entry reloads."""
+    root = Path(__file__).parent
+    await hass.http.async_register_static_paths([
+        StaticPathConfig("/zenbi-card/zenbi-card.js", str(root / "frontend" / "zenbi-card.js"), False),
+        StaticPathConfig("/zenbi-card/icon.png", str(root / "brand" / "icon.png"), True),
+    ])
+    return True
 
 
 async def async_setup_entry(hass, entry):

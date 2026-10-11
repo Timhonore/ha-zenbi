@@ -5,11 +5,13 @@
     "@Timhonore"
   ],
   "config_flow": true,
-  "dependencies": [],
+  "dependencies": [
+    "http"
+  ],
   "documentation": "https://github.com/Timhonore/ha-zenbi#readme",
   "integration_type": "hub",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/Timhonore/ha-zenbi/issues",
   "requirements": [],
-  "version": "0.1.0-beta.1"
+  "version": "0.1.0-beta.2"
 }

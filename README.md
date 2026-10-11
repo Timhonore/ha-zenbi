@@ -4,7 +4,7 @@
 
 [![Validate](https://github.com/Timhonore/ha-zenbi/actions/workflows/validate.yml/badge.svg)](https://github.com/Timhonore/ha-zenbi/actions/workflows/validate.yml)
 
-**Version 0.1.0-beta.1 — uofficiel integration og første testversion.**
+**Version 0.1.0-beta.2 — uofficiel integration og første testversion.**
 
 Henter lektier, opgaver, ugeplaner, kalender, beskeder og opslag fra den konto,
 du selv har adgang til på `app.zenbi.dk`. Installeres gennem HACS som et custom
@@ -20,6 +20,73 @@ repository: **https://github.com/Timhonore/ha-zenbi**.
 
 Zenbis officielle appikon er inkluderet. Lokale brandikoner vises i Home
 Assistant fra version 2026.3; tidligere versioner kan vise standardikon.
+
+## Zenbi Card
+
+Et kort uden ekstra card-afhængigheder, med Zenbis ikon, lys/mørk tilstand,
+børnevælger, lektier og opgaver, syvdageskalender, beskeder, ugeplaner og
+opslag. Tryk på et element for at folde teksten ud. Børn og entiteter findes
+fra HA's entitetsregister; du behøver ikke kende deres entity-id'er.
+
+**Installér kortet:**
+
+1. Opdater Zenbi til **0.1.0-beta.2** i HACS og genstart HA.
+2. Aktivér avanceret tilstand på din HA-profil, hvis Ressourcer ikke vises.
+3. Åbn **Indstillinger → Dashboards → ⋮ → Ressourcer** og tilføj
+   `/zenbi-card/zenbi-card.js?v=0.1.0-beta.2` som **JavaScript Module**.
+4. Genindlæs dashboardet. Tilføj kortet **Zenbi · Skoleoverblik**, eller
+   indsæt YAML nedenfor som et manuelt kort.
+
+```yaml
+type: custom:zenbi-card
+title: Familiens skoleoverblik
+max_items: 5
+show_posts: true
+```
+
+Card-filen følger med integrationens HACS-download. Den kræver en opsat Zenbi-
+integration for at kunne vises på `/zenbi-card/`. Resource tilføjes én gang;
+ved kommende opdateringer skal versionsparameteren ændres for at undgå gammel
+browsercache. Kortet kan konfigureres i den visuelle editor (titel, konto,
+antal rækker og opslag). Har du flere Zenbi-konti, vælg konto i editoren.
+For YAML-dashboards tilføjes URL'en under Lovelaces `resources` med `type: module`.
+
+![Zenbi Card — syntetiske demodata](docs/images/zenbi-card-light.png)
+
+Beskeder og opslag er fælles for kontoen, også når et barn er valgt. Ugeplaner
+for **Alle børn** samles uden dubletter. Ukendte/utilgængelige kilder vises som
+manglende data; kortet tolker dem ikke som nul. Kalenderen hentes gennem HA's
+kalender-API, uden at kortet får adgang til Zenbi-tokens. Opdater-knappen
+kalder integrationens eksisterende opdatering. Kortet markerer ikke beskeder
+læst og indeholder ingen automatiske notifikationer.
+
+### Manuel binding af entiteter
+
+Hvis entitetsregisteret ikke er tilgængeligt, eller du vil styre indholdet,
+kan du angive egne entiteter. Erstat eksemplerne med dine faktiske id'er:
+
+```yaml
+type: custom:zenbi-card
+title: Familiens skoleoverblik
+homework_entity: sensor.zenbi_alle_lektier
+tasks_entity: sensor.zenbi_alle_opgaver
+calendar_entity: calendar.zenbi_kalender
+messages_entity: sensor.zenbi_beskeder
+unread_entity: sensor.zenbi_ulaeste_beskeder
+posts_entity: sensor.zenbi_opslag
+status_entity: sensor.zenbi_datastatus
+update_entity: button.zenbi_opdater
+children:
+  - name: Barn 1
+    homework_entity: sensor.zenbi_barn_1_lektier
+    tasks_entity: sensor.zenbi_barn_1_opgaver
+    weekly_plans_entity: sensor.zenbi_barn_1_ugeplaner
+    calendar_entity: calendar.zenbi_barn_1_kalender
+```
+
+Browserprøver bruger syntetiske data: automatisk entitetsvalg, børnefiltrering,
+kalender, udfoldning, HTML-escaping, utilgængelige kilder, editor og mobilbredde.
+Screenshots viser demodata. Kortet skal stadig prøves med din faktiske HA-instans.
 
 ## Hvad er testet?
 
@@ -131,7 +198,7 @@ beskeder læst, sende beskeder, redigere lektier eller oprette aftaler.
    `custom_components/zenbi` og `hacs.json` skal ligge direkte i roden.
 4. Kør HACS- og hassfest-validering og ret eventuelle krav, før udgivelse.
    GitHub-workflowet i `.github/workflows/validate.yml` er inkluderet.
-5. En release med tag `v0.1.0-beta.1` er valgfri; HACS kan hente fra `main`.
+5. En release med tag `v0.1.0-beta.2` er valgfri; HACS kan hente fra `main`.
 6. I HACS: **Custom repositories / Brugerdefinerede repositories**, tilføj
    repositoryets URL, vælg **Integration**, og installer Zenbi.
 
