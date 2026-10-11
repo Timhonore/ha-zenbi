@@ -31,6 +31,33 @@ Assistant fra version 2026.3; tidligere versioner kan vise standardikon.
   kan vise fulde navne. Entiteternes navne og id'er ændres ikke af cardet.
 - Diagnostikkens versionsnummer følger nu den installerede version.
 
+## Ikon på HACS-opdateringsentiteten
+
+HACS 2.0.5 henter `entity_picture` fra `brands.home-assistant.io`, som ikke
+bruger Zenbis lokale `brand/`-mappe. Derfor kan opdateringsdialogen vise
+“icon not available”, selv om integrationssiden og cardet har korrekt ikon.
+
+Har du allerede `homeassistant: packages: !include_dir_named packages`, gem
+følgende som `/config/packages/zenbi_branding.yaml` og genstart HA:
+
+```yaml
+homeassistant:
+  customize_glob:
+    "update.*zenbi*":
+      entity_picture: /zenbi-card/icon.png
+```
+
+Se også `examples/zenbi_branding.yaml`. Reglen rammer kun update-entiteter
+med `zenbi` i deres entity-id. Har du omdøbt entiteten til et id uden `zenbi`,
+erstat mønsteret med dens faktiske id. URL'en serveres af Zenbi-integrationen;
+Zenbi skal derfor være installeret og indlæst. Du behøver ikke ændre kortets
+resource eller opdatere integrationskoden for denne tilpasning.
+
+Ved almindelig YAML-konfiguration kan `customize_glob` i stedet lægges under
+din eksisterende `homeassistant:`-sektion i `configuration.yaml`. Opret ikke
+en ekstra `homeassistant:`-sektion i samme fil. Den lokale `brand/`-mappe
+bruges fortsat automatisk på integrationssiden i HA 2026.3+.
+
 ## Zenbi Card
 
 Et kort uden ekstra card-afhængigheder, med Zenbis ikon, lys/mørk tilstand,

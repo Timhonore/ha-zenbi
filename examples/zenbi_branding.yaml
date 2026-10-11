@@ -1,0 +1,8 @@
+# Gem som /config/packages/zenbi_branding.yaml og genstart Home Assistant.
+# Kræver homeassistant: packages: !include_dir_named packages i configuration.yaml.
+# Zenbi-integrationen serverer det officielle ikon på denne lokale URL.
+# HACS 2.0.5 bruger ellers brands.home-assistant.io for update-ikonet.
+homeassistant:
+  customize_glob:
+    "update.*zenbi*":
+      entity_picture: /zenbi-card/icon.png
