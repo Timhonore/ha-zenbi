@@ -100,6 +100,17 @@ class ModelsTest(unittest.TestCase):
         self.assertNotIn("sensitive", str(children))
         self.assertEqual(groups[CHILD], {GROUP})
 
+    def test_school_class_reference_uses_group_name(self):
+        data = {"groupModelTimeFrames": [{"users": [], "groupModels": [{"id": GROUP, "name": "1. klasse"}]}],
+                "userModelTimeFrames": [{"userModels": [{"userMetadata": [
+                    {"userId": CHILD, "personFieldId": const.NAME_FIELDS["full"], "value": "Test Elev"},
+                    {"userId": CHILD, "personFieldId": const.NAME_FIELDS["class"], "value": GROUP}]}]}]}
+        children, _ = models.profile(data, {"rel": f"{OTHER},{CHILD}"})
+        self.assertEqual(children[CHILD]["class"], "1. klasse")
+        data["groupModelTimeFrames"][0]["groupModels"] = []
+        children, _ = models.profile(data, {"rel": f"{OTHER},{CHILD}"})
+        self.assertEqual(children[CHILD]["class"], "")
+
     def event(self, rule):
         return {"id": "event", "title": "Dansk", "repetition": rule, "participantModels": []}
 
@@ -175,7 +186,8 @@ class ApiTest(unittest.IsolatedAsyncioTestCase):
         client = api.ZenbiClient(session, tokens={"token": token(), "refreshToken": "old"})
         now = datetime.now(timezone.utc)
         await client.source("posts", now, now + timedelta(days=1))
-        method, _, kwargs = session.calls[0]
+        method, url, kwargs = session.calls[0]
+        self.assertTrue(url.endswith("/api/diary/api/v1/diary/relations"))
         self.assertEqual(method, "GET")
         self.assertEqual({k for k, v in kwargs["params"]}, {"starttime", "endtime"})
 

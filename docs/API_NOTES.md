@@ -32,7 +32,7 @@ adgangskoder eller sessionsoplysninger i dette repository.
 | Relationskalender | `/api/calendar/api/v1/calendaritems/own/relation/users` | Samme kalenderform |
 | Beskeder | `/api/message/api/v1/messageitems` | `messageParents`, `messageChilds`, `paginationKey` og relaterede samlinger |
 | Ulæste id'er | `/api/message/api/v1/messageitem/unread/ids` | Liste af id-strenge |
-| Opslag/dagbog | `/api/diary/api/v1/diary/dates` | `diaries` og relaterede samlinger |
+| Opslag/dagbog | `/api/diary/api/v1/diary/relations` | `diaries` og relaterede samlinger |
 
 Lektier/ugeplaner/kalender/opgaver bruger `start` og `end` i query.
 Dagbog/opslag bruger **`starttime` og `endtime`**. Beskeder bruger `take` og
@@ -68,3 +68,8 @@ Dokumentation til HA/HACS:
 - https://developers.home-assistant.io/docs/integration_fetching_data/
 - https://developers.home-assistant.io/docs/core/entity/calendar/
 - https://www.hacs.xyz/docs/publish/integration/
+
+Beta.3: Første HA-diagnostik viste kun posts=PermissionError (HTTP 403);
+øvrige syv kilder var ok. Offentlig diary-store definerer postsRelations
+på /diary/relations med starttime/endtime og samme diaries-samling.
+Den tidligere /diary/dates-rute beholdes ikke som fallback ved en afvisning.

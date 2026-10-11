@@ -104,7 +104,7 @@ const root = path.resolve(__dirname, "..");
     };
     add("homework", "all", 2, [hw1, hw2], "Alle lektier");
     add("tasks", "all", 1, [task], "Alle opgaver");
-    add("homework", "freja", 1, [hw1], "Freja Lektier");
+    add("homework", "freja", 1, [hw1], "Freja Testnavn Familienavn Lektier");
     add("tasks", "freja", 0, [], "Freja Opgaver");
     add("weekly_plans", "freja", 1, [plan], "Freja Ugeplaner");
     add("homework", "oscar", 1, [hw2], "Oscar Lektier");
@@ -354,6 +354,18 @@ const root = path.resolve(__dirname, "..");
     await card.screenshot({
       path: path.join(root, "docs/images/zenbi-card-dark-mobile.png"),
     });
+  for (const tab of await card.locator("nav button").all()) {
+    const box = await tab.boundingBox();
+    assert.ok(
+      box.x >= 0 && box.x + box.width <= 360,
+      "Every tab fits on mobile",
+    );
+  }
+  assert.equal(
+    await card.getByRole("button", { name: "Freja", exact: true }).count(),
+    1,
+    "Long child names use first name",
+  );
   assert.deepEqual(errors, []);
   await browser.close();
   console.log(

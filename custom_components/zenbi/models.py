@@ -98,6 +98,11 @@ def profile(global_data: dict, token_claims: dict) -> tuple[dict, dict]:
     """Keep only names/classes of relations and group membership for filtering."""
     metadata = {}
     groups = {}
+    group_names = {g["id"]: g.get("name", "")
+                   for t in global_data.get("groupModelTimeFrames", [])
+                   for g in t.get("groupModels", []) if g.get("id")}
+    group_names.update({g["id"]: g.get("name", "")
+                        for g in global_data.get("meInfo", {}).get("groupModels", []) if g.get("id")})
     for timeframe in rows(global_data, "groupModelTimeFrames"):
         for group in timeframe.get("users", []):
             for user_id in group.get("userIds", []):
@@ -117,7 +122,10 @@ def profile(global_data: dict, token_claims: dict) -> tuple[dict, dict]:
         name = fields.get(NAME_FIELDS["full"]) or " ".join(
             fields.get(NAME_FIELDS[k], "") for k in ("first", "middle", "last")
             if fields.get(NAME_FIELDS[k])) or f"Relation {user_id[:8]}"
-        children[user_id] = {"name": name, "class": fields.get(NAME_FIELDS["class"], "")}
+        school_class = fields.get(NAME_FIELDS["class"], "")
+        if re.fullmatch(r"[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}", str(school_class)):
+            school_class = group_names.get(school_class, "")
+        children[user_id] = {"name": name, "class": school_class}
     return children, groups
 
 

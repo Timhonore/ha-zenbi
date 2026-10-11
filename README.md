@@ -4,7 +4,7 @@
 
 [![Validate](https://github.com/Timhonore/ha-zenbi/actions/workflows/validate.yml/badge.svg)](https://github.com/Timhonore/ha-zenbi/actions/workflows/validate.yml)
 
-**Version 0.1.0-beta.2 — uofficiel integration og første testversion.**
+**Version 0.1.0-beta.3 — uofficiel integration og første testversion.**
 
 Henter lektier, opgaver, ugeplaner, kalender, beskeder og opslag fra den konto,
 du selv har adgang til på `app.zenbi.dk`. Installeres gennem HACS som et custom
@@ -21,6 +21,16 @@ repository: **https://github.com/Timhonore/ha-zenbi**.
 Zenbis officielle appikon er inkluderet. Lokale brandikoner vises i Home
 Assistant fra version 2026.3; tidligere versioner kan vise standardikon.
 
+## Rettelser i beta.3
+
+- Opslag bruger forældreruten `diary/relations` frem for `diary/dates`, som
+  blev afvist med HTTP 403 i den første HA-test. Den nye rute skal bekræftes
+  med et nyt poll på forældrekontoen.
+- Klasse-referencer slås op i gruppenavne; uopløste UUID'er vises ikke i børnevalget.
+- Cardet viser fornavne og alle fem faner på mobilbredde. `full_names: true`
+  kan vise fulde navne. Entiteternes navne og id'er ændres ikke af cardet.
+- Diagnostikkens versionsnummer følger nu den installerede version.
+
 ## Zenbi Card
 
 Et kort uden ekstra card-afhængigheder, med Zenbis ikon, lys/mørk tilstand,
@@ -30,10 +40,10 @@ fra HA's entitetsregister; du behøver ikke kende deres entity-id'er.
 
 **Installér kortet:**
 
-1. Opdater Zenbi til **0.1.0-beta.2** i HACS og genstart HA.
+1. Opdater Zenbi til **0.1.0-beta.3** i HACS og genstart HA.
 2. Aktivér avanceret tilstand på din HA-profil, hvis Ressourcer ikke vises.
 3. Åbn **Indstillinger → Dashboards → ⋮ → Ressourcer** og tilføj
-   `/zenbi-card/zenbi-card.js?v=0.1.0-beta.2` som **JavaScript Module**.
+   `/zenbi-card/zenbi-card.js?v=0.1.0-beta.3` som **JavaScript Module**.
 4. Genindlæs dashboardet. Tilføj kortet **Zenbi · Skoleoverblik**, eller
    indsæt YAML nedenfor som et manuelt kort.
 
@@ -94,7 +104,7 @@ Screenshots viser demodata. Kortet skal stadig prøves med din faktiske HA-insta
 - API-ruter, HTTP-metoder, loginfelter, tokenfornyelse, samlinger, tilknytning
   via grupper og kalendergentagelser er kortlagt fra offentlig JavaScript
   leveret af webappen den 11. oktober 2026.
-- 21 automatiske tests med kunstige data er bestået: tokenfornyelse, HTTP-fejl,
+- 22 automatiske tests med kunstige data er bestået: tokenfornyelse, HTTP-fejl,
   gruppefiltrering, tekstkonvertering, gentagelser, flytninger, sommertid og
   delvise kildefejl.
 - Python-filer er syntakskontrolleret.
@@ -198,7 +208,7 @@ beskeder læst, sende beskeder, redigere lektier eller oprette aftaler.
    `custom_components/zenbi` og `hacs.json` skal ligge direkte i roden.
 4. Kør HACS- og hassfest-validering og ret eventuelle krav, før udgivelse.
    GitHub-workflowet i `.github/workflows/validate.yml` er inkluderet.
-5. En release med tag `v0.1.0-beta.2` er valgfri; HACS kan hente fra `main`.
+5. En release med tag `v0.1.0-beta.3` er valgfri; HACS kan hente fra `main`.
 6. I HACS: **Custom repositories / Brugerdefinerede repositories**, tilføj
    repositoryets URL, vælg **Integration**, og installer Zenbi.
 
