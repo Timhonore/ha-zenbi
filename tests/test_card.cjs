@@ -366,6 +366,116 @@ const root = path.resolve(__dirname, "..");
     1,
     "Long child names use first name",
   );
+  // Regression: tabs below other dashboard cards keep both focus and scroll.
+  await page.setViewportSize({ width: 600, height: 950 });
+  await page.evaluate(() => {
+    const above = document.createElement("div");
+    above.style.height = "1400px";
+    const below = document.createElement("div");
+    below.style.height = "1600px";
+    document.body.prepend(above);
+    document.body.append(below);
+    window.scrollBy(
+      0,
+      card.shadowRoot.querySelector("nav").getBoundingClientRect().top - 220,
+    );
+  });
+  const checkSwitch = async (tab, nested) => {
+    const before = await page.evaluate(
+      ({ tab, nested }) => {
+        const button = card.shadowRoot.querySelector(
+          `nav button[data-tab=${tab}]`,
+        );
+        window.clickedTab = button;
+        return {
+          top: button.getBoundingClientRect().top,
+          scroll: nested ? window.dashboardScroller.scrollTop : window.scrollY,
+        };
+      },
+      { tab, nested },
+    );
+    await card.locator(`nav button[data-tab=${tab}]`).click();
+    await page.waitForTimeout(80);
+    const after = await page.evaluate(
+      ({ tab, nested }) => ({
+        top: card.shadowRoot
+          .querySelector(`nav button[data-tab=${tab}]`)
+          .getBoundingClientRect().top,
+        scroll: nested ? window.dashboardScroller.scrollTop : window.scrollY,
+        sameButton:
+          clickedTab ===
+          card.shadowRoot.querySelector(`nav button[data-tab=${tab}]`),
+        focused: card.shadowRoot.activeElement === clickedTab,
+      }),
+      { tab, nested },
+    );
+    assert.equal(after.sameButton, true, "Tab DOM identity survives rendering");
+    assert.equal(after.focused, true, "Clicked tab keeps keyboard focus");
+    assert.ok(
+      Math.abs(after.top - before.top) <= 1,
+      `Tab ${tab} stays in view`,
+    );
+    assert.ok(
+      Math.abs(after.scroll - before.scroll) <= 1,
+      "Dashboard does not scroll on tab switch",
+    );
+  };
+  for (const tab of [
+    "posts",
+    "weekly_plans",
+    "homework",
+    "messages",
+    "calendar",
+  ])
+    await checkSwitch(tab, false);
+  await page.evaluate(() => {
+    const host = document.createElement("div");
+    host.style.cssText = "position:fixed;inset:0;background:white";
+    const shadow = host.attachShadow({ mode: "open" });
+    const scroller = document.createElement("div");
+    scroller.style.cssText =
+      "height:100%;overflow:auto;padding:12px;box-sizing:border-box";
+    scroller.innerHTML = '<div style="height:1400px"></div>';
+    scroller.append(card);
+    const below = document.createElement("div");
+    below.style.height = "1600px";
+    scroller.append(below);
+    shadow.append(scroller);
+    document.body.append(host);
+    window.dashboardScroller = scroller;
+    scroller.scrollTop +=
+      card.shadowRoot.querySelector("nav").getBoundingClientRect().top - 220;
+  });
+  for (const tab of ["posts", "weekly_plans", "homework", "messages"])
+    await checkSwitch(tab, true);
+  await page.evaluate(() => {
+    card._calendarKey = null;
+    card._hass = {
+      ...hass,
+      callApi: () =>
+        new Promise((resolve) => (window.resolveCalendar = resolve)),
+    };
+  });
+  await checkSwitch("calendar", true);
+  // A late API response must preserve where the user has since scrolled.
+  const currentScroll = await page.evaluate(() => {
+    dashboardScroller.scrollTop += 45;
+    const position = dashboardScroller.scrollTop;
+    resolveCalendar([
+      {
+        summary: "Forsinket kalender",
+        start: { date: "2026-10-12" },
+        end: { date: "2026-10-13" },
+      },
+    ]);
+    return position;
+  });
+  await card.getByText("Forsinket kalender", { exact: true }).waitFor();
+  assert.equal(
+    await page.evaluate(() => dashboardScroller.scrollTop),
+    currentScroll,
+    "Async response preserves current scroll, not the position before the request",
+  );
   assert.deepEqual(errors, []);
   await browser.close();
   console.log(

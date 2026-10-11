@@ -1,5 +1,5 @@
 /* Zenbi Card — no external dependencies. MIT; official icon retains Zenbi's rights. */
-const VERSION = "0.1.0-beta.3";
+const VERSION = "0.1.0-beta.4";
 const esc = (v) =>
   String(v ?? "").replace(
     /[&<>"']/g,
@@ -8,6 +8,58 @@ const esc = (v) =>
         c
       ],
   );
+// Reuse controls instead of removing the focused button and browser scroll anchor.
+function patchChildren(parent, template) {
+  const key = (node) =>
+    node.nodeType === 1
+      ? `${node.tagName}:${node.getAttribute("data-key") || node.getAttribute("data-tab") || node.getAttribute("data-child") || node.getAttribute("data-action") || ""}`
+      : String(node.nodeType);
+  let current = parent.firstChild;
+  for (const wanted of [...template.childNodes]) {
+    if (!current || key(current) !== key(wanted)) {
+      const match = [...parent.childNodes].find(
+        (node) =>
+          key(node) === key(wanted) &&
+          node !== current &&
+          wanted.nodeType === 1 &&
+          wanted.hasAttribute("data-key"),
+      );
+      if (match) parent.insertBefore(match, current);
+      else parent.insertBefore(wanted.cloneNode(true), current);
+      current = current ? current.previousSibling : parent.lastChild;
+    }
+    if (wanted.nodeType === 1) {
+      for (const attribute of [...current.attributes])
+        if (!wanted.hasAttribute(attribute.name))
+          current.removeAttribute(attribute.name);
+      for (const attribute of wanted.attributes)
+        if (current.getAttribute(attribute.name) !== attribute.value)
+          current.setAttribute(attribute.name, attribute.value);
+      // HA owns its icon internals; only its public attributes belong to the card.
+      if (wanted.tagName !== "HA-ICON") patchChildren(current, wanted);
+    } else if (current.nodeValue !== wanted.nodeValue)
+      current.nodeValue = wanted.nodeValue;
+    current = current.nextSibling;
+  }
+  while (current) {
+    const next = current.nextSibling;
+    current.remove();
+    current = next;
+  }
+}
+function scrollPositions(host) {
+  const positions = [];
+  // HA dashboards can scroll inside shadow hosts rather than the document.
+  for (let node = host; node; node = node.parentNode || node.host) {
+    if (
+      node.nodeType === 1 &&
+      (node.scrollHeight > node.clientHeight ||
+        node.scrollWidth > node.clientWidth)
+    )
+      positions.push([node, node.scrollTop, node.scrollLeft]);
+  }
+  return positions;
+}
 const registryCache = new WeakMap();
 async function registry(hass) {
   const key = hass.connection;
@@ -474,7 +526,14 @@ class ZenbiCard extends HTMLElement {
       "details[open][data-key]",
     ))
       this._expanded.add(details.dataset.key);
-    this.shadowRoot.innerHTML = `<style>${css}</style><ha-card><header><div class="top"><img class="logo" src="/zenbi-card/icon.png" alt="Zenbi"><div class="heading"><p class="eyebrow">Skole & hverdag</p><h1>${esc(this._config.title)}</h1></div>${all.update ? `<button class="refresh ${this._refreshing ? "syncing" : ""}" data-action="refresh" aria-label="Opdater Zenbi" ${this._refreshing || !this._state(all.update) || this._state(all.update).state === "unavailable" ? "disabled" : ""}>${icon("refresh")}</button>` : ""}</div><p class="sub"><span class="dot ${ok ? "" : "warn"}"></span>${ok ? "Opdateret" : status?.state === "delvis" ? "Nogle data mangler" : "Afventer data"}${stamp ? " kl. " + esc(stamp) : ""}</p>${children.length ? `<div class="children" aria-label="Vælg barn">${[all, ...children].map(childButton).join("")}</div>` : ""}</header><div class="stats">${stat(count, "Lektier & opgaver", "book-open-page-variant", "homework")}${stat(this._count(all.unread), "Ulæste beskeder", "email-outline", "messages")}${stat(this._count(active.weekly_plans), "Ugeplaner", "view-week-outline", "weekly_plans")}</div><nav aria-label="Vis indhold">${tabList.map(([id, title, name]) => `<button class="tab ${this._tab === id ? "active" : ""}" data-tab="${id}" aria-pressed="${this._tab === id}">${icon(name)}${title}${id === "messages" && Number(this._count(all.unread)) > 0 ? `<span class="badge">${esc(this._count(all.unread))}</span>` : ""}</button>`).join("")}</nav><div class="content">${this._multipleEntries ? '<div class="notice">Flere Zenbi-konti er fundet. Vælg konto i kortets editor.</div>' : ""}${this._discoveryError ? '<div class="notice">Automatisk entitetsvalg fejlede. Vælg entiteter manuelt i YAML, eller genindlæs dashboardet.</div>' : ""}${this._actionError ? `<p class="error" role="alert">${esc(this._actionError)}</p>` : ""}<div class="section-title">${esc(this._tab === "calendar" ? "De næste 7 dage" : ["messages", "posts"].includes(this._tab) ? "Fælles for kontoen" : active.id === "all" ? "Alle børn" : active.name)}</div>${this._content(active, all)}</div><footer><span>${this._tab === "messages" ? "Seneste hentede side · op til 50 beskeder" : "Zenbi · familiens skoleoverblik"}</span><a href="https://app.zenbi.dk/home" target="_blank" rel="noopener noreferrer">Åbn Zenbi ${icon("arrow-top-right")}</a></footer></ha-card>`;
+    const positions = scrollPositions(this);
+    const template = document.createElement("template");
+    template.innerHTML = `<style>${css}</style><ha-card><header><div class="top"><img class="logo" src="/zenbi-card/icon.png" alt="Zenbi"><div class="heading"><p class="eyebrow">Skole & hverdag</p><h1>${esc(this._config.title)}</h1></div>${all.update ? `<button class="refresh ${this._refreshing ? "syncing" : ""}" data-action="refresh" aria-label="Opdater Zenbi" ${this._refreshing || !this._state(all.update) || this._state(all.update).state === "unavailable" ? "disabled" : ""}>${icon("refresh")}</button>` : ""}</div><p class="sub"><span class="dot ${ok ? "" : "warn"}"></span>${ok ? "Opdateret" : status?.state === "delvis" ? "Nogle data mangler" : "Afventer data"}${stamp ? " kl. " + esc(stamp) : ""}</p>${children.length ? `<div class="children" aria-label="Vælg barn">${[all, ...children].map(childButton).join("")}</div>` : ""}</header><div class="stats">${stat(count, "Lektier & opgaver", "book-open-page-variant", "homework")}${stat(this._count(all.unread), "Ulæste beskeder", "email-outline", "messages")}${stat(this._count(active.weekly_plans), "Ugeplaner", "view-week-outline", "weekly_plans")}</div><nav aria-label="Vis indhold">${tabList.map(([id, title, name]) => `<button class="tab ${this._tab === id ? "active" : ""}" data-tab="${id}" aria-pressed="${this._tab === id}">${icon(name)}${title}${id === "messages" && Number(this._count(all.unread)) > 0 ? `<span class="badge">${esc(this._count(all.unread))}</span>` : ""}</button>`).join("")}</nav><div class="content">${this._multipleEntries ? '<div class="notice">Flere Zenbi-konti er fundet. Vælg konto i kortets editor.</div>' : ""}${this._discoveryError ? '<div class="notice">Automatisk entitetsvalg fejlede. Vælg entiteter manuelt i YAML, eller genindlæs dashboardet.</div>' : ""}${this._actionError ? `<p class="error" role="alert">${esc(this._actionError)}</p>` : ""}<div class="section-title">${esc(this._tab === "calendar" ? "De næste 7 dage" : ["messages", "posts"].includes(this._tab) ? "Fælles for kontoen" : active.id === "all" ? "Alle børn" : active.name)}</div>${this._content(active, all)}</div><footer><span>${this._tab === "messages" ? "Seneste hentede side · op til 50 beskeder" : "Zenbi · familiens skoleoverblik"}</span><a href="https://app.zenbi.dk/home" target="_blank" rel="noopener noreferrer">Åbn Zenbi ${icon("arrow-top-right")}</a></footer></ha-card>`;
+    patchChildren(this.shadowRoot, template.content);
+    for (const [node, top, left] of positions) {
+      node.scrollTop = top;
+      node.scrollLeft = left;
+    }
     for (const [selector, left] of scrolls) {
       const node = this.shadowRoot.querySelector(selector);
       if (node) node.scrollLeft = left;
