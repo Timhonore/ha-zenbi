@@ -174,6 +174,7 @@ const root = path.resolve(__dirname, "..");
   await page.evaluate(() => {
     const card = document.createElement("zenbi-card");
     card.id = "card";
+    window.card = card;
     card.setConfig({ type: "custom:zenbi-card", max_items: 2 });
     card.hass = hass;
     document.body.append(card);
