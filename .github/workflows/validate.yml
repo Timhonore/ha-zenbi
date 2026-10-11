@@ -21,6 +21,8 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
+          # Metadata for the default HACS catalogue; custom installs use the URL.
+          ignore: description topics
   hassfest:
     runs-on: ubuntu-latest
     steps:

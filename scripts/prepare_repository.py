@@ -15,5 +15,6 @@ manifest = json.loads(path.read_text())
 manifest.update(documentation=f"https://github.com/{args.repo}#readme",
                 issue_tracker=f"https://github.com/{args.repo}/issues",
                 codeowners=[f"@{args.repo.split('/')[0]}"])
+manifest = {key: manifest[key] for key in ["domain", "name", *sorted(set(manifest) - {"domain", "name"})]}
 path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
 print(f"Repository metadata prepared for {args.repo}")

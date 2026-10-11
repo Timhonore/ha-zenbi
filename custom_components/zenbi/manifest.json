@@ -1,15 +1,15 @@
 {
   "domain": "zenbi",
   "name": "Zenbi",
-  "version": "0.1.0-beta.1",
-  "config_flow": true,
-  "documentation": "https://github.com/Timhonore/ha-zenbi#readme",
-  "issue_tracker": "https://github.com/Timhonore/ha-zenbi/issues",
   "codeowners": [
     "@Timhonore"
   ],
+  "config_flow": true,
   "dependencies": [],
-  "requirements": [],
+  "documentation": "https://github.com/Timhonore/ha-zenbi#readme",
+  "integration_type": "hub",
   "iot_class": "cloud_polling",
-  "integration_type": "hub"
+  "issue_tracker": "https://github.com/Timhonore/ha-zenbi/issues",
+  "requirements": [],
+  "version": "0.1.0-beta.1"
 }

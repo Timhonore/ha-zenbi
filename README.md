@@ -2,6 +2,8 @@
 
 <img src="custom_components/zenbi/brand/icon.png" alt="Zenbi" width="96">
 
+[![Validate](https://github.com/Timhonore/ha-zenbi/actions/workflows/validate.yml/badge.svg)](https://github.com/Timhonore/ha-zenbi/actions/workflows/validate.yml)
+
 **Version 0.1.0-beta.1 — uofficiel integration og første testversion.**
 
 Henter lektier, opgaver, ugeplaner, kalender, beskeder og opslag fra den konto,
@@ -129,12 +131,19 @@ beskeder læst, sende beskeder, redigere lektier eller oprette aftaler.
    `custom_components/zenbi` og `hacs.json` skal ligge direkte i roden.
 4. Kør HACS- og hassfest-validering og ret eventuelle krav, før udgivelse.
    GitHub-workflowet i `.github/workflows/validate.yml` er inkluderet.
-5. Opret en release med tag `v0.1.0-beta.1`.
+5. En release med tag `v0.1.0-beta.1` er valgfri; HACS kan hente fra `main`.
 6. I HACS: **Custom repositories / Brugerdefinerede repositories**, tilføj
    repositoryets URL, vælg **Integration**, og installer Zenbi.
 
 Manifestets dokumentationslink, issue-link og codeowner er konfigureret til
 `Timhonore/ha-zenbi`. Dette er ikke en integration, som Zenbi har udgivet eller godkendt.
+
+HACS-workflowet kontrollerer integrationspakken, manifest, branding og øvrige
+installationskrav. Kontrollerne af GitHub-beskrivelse og topics er undtaget,
+da denne beta installeres som et custom repository. GitHub-connectoren kan
+ikke ændre disse repositoryindstillinger. Før en ansøgning om optagelse i
+HACS' standardkatalog skal en beskrivelse og topics tilføjes i GitHubs
+**About**, fx `home-assistant`, `hacs`, `zenbi`, og undtagelserne fjernes.
 
 ## Udvikling
 
