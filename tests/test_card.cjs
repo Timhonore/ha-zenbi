@@ -223,6 +223,42 @@ const root = path.resolve(__dirname, "..");
   await card.getByText("Fælles morgenmad", { exact: true }).waitFor();
   await card.getByRole("button", { name: "Oscar", exact: true }).click();
   await card.getByText("Fælles morgenmad", { exact: true }).waitFor();
+  // A late response for Freja must not replace Oscar's calendar after a fast switch.
+  await page.evaluate(() => {
+    window.originalApi = hass.callApi;
+    card._hass = {
+      ...hass,
+      callApi: (method, url) =>
+        url.includes("demo_freja")
+          ? new Promise((resolve) => (window.resolveFreja = resolve))
+          : Promise.resolve([
+              {
+                summary: "Oscar kalender",
+                start: { date: "2026-10-12" },
+                end: { date: "2026-10-13" },
+              },
+            ]),
+    };
+  });
+  await card.getByRole("button", { name: "Freja", exact: true }).click();
+  await card.getByRole("button", { name: "Oscar", exact: true }).click();
+  await card.getByText("Oscar kalender", { exact: true }).waitFor();
+  await page.evaluate(() =>
+    resolveFreja([
+      {
+        summary: "Freja forsinket",
+        start: { date: "2026-10-12" },
+        end: { date: "2026-10-13" },
+      },
+    ]),
+  );
+  assert.equal(
+    await card.getByText("Freja forsinket", { exact: true }).count(),
+    0,
+  );
+  await page.evaluate(() => {
+    card._hass = hass;
+  });
   await card.locator("nav button[data-tab=homework]").click();
   await page.evaluate(() => {
     const next = { ...hass.states };
@@ -268,6 +304,13 @@ const root = path.resolve(__dirname, "..");
   await page
     .locator("zenbi-card-editor input[data-key=title]")
     .fill("Familiens skole");
+  await page.evaluate(() => {
+    document.querySelector("zenbi-card-editor").hass = { ...hass };
+  });
+  assert.equal(
+    await page.locator("zenbi-card-editor input[data-key=title]").inputValue(),
+    "Familiens skole",
+  );
   await page.locator("zenbi-card-editor input[data-key=title]").blur();
   assert.equal(
     await page.evaluate(() => editorConfig.title),
