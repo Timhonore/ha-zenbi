@@ -159,7 +159,7 @@ class ZenbiClient:
         elif name == "unread":
             params = {}
         elif name == "posts":
-            params = {"starttime": start.isoformat(), "endtime": end.isoformat()}
+            params = {"start": start.isoformat(), "end": end.isoformat(), "skip": 0, "take": 100}
         response = await self.get(ENDPOINTS[name], params)
         if name == "messages":
             parents = rows(response, "messageParents")
@@ -170,7 +170,7 @@ class ZenbiClient:
             rows(response, "recipients")
             return response
         if name == "posts":
-            return rows(response, "diaries")
+            return rows(response, "boards")
         if name == "unread":
             if not isinstance(response, list) or any(not isinstance(v, str) for v in response):
                 raise SchemaError("Expected unread id list")

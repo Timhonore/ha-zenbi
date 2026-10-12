@@ -106,6 +106,28 @@ class CoordinatorTest(unittest.IsolatedAsyncioTestCase):
     async def update(self):
         self.coordinator.data = await self.coordinator._async_update_data()
 
+    async def test_board_posts_show_only_active_not_expired_or_future(self):
+        self.client.sources["posts"] = [
+            {"id": "active", "title": "Kor", "description": "Tilmelding",
+             "start": "2026-10-10T10:32:00+02:00", "end": "2026-11-01T00:00:00+01:00"},
+            {"id": "expired", "start": "2026-09-01", "end": "2026-10-10"},
+            {"id": "future", "start": "2026-10-12", "end": "2026-11-01"}]
+        calls = []
+        original = self.client.source
+        async def source(kind, start, end):
+            if kind == "posts":
+                calls.append((start, end))
+            return await original(kind, start, end)
+        self.client.source = source
+        await self.update()
+        self.assertEqual(self.coordinator.data["status"]["posts"], "ok")
+        self.assertEqual([row["id"] for row in self.coordinator.data["items"]["posts"]], ["active"])
+        self.assertEqual(calls[0][1], dt.now())
+        self.assertEqual((calls[0][1] - calls[0][0]).days, 1)
+        self.client.sources["posts"] = [{"id": "invalid", "start": "bad", "end": "bad"}]
+        await self.update()
+        self.assertEqual(self.coordinator.data["status"]["posts"], "SchemaError")
+
     async def test_on_demand_week_range_cache_and_sensor_isolation(self):
         await self.update()
         previous = self.coordinator.data

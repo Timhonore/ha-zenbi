@@ -4,8 +4,8 @@
 
 [![Validate](https://github.com/Timhonore/ha-zenbi/actions/workflows/validate.yml/badge.svg)](https://github.com/Timhonore/ha-zenbi/actions/workflows/validate.yml)
 
-**Udgivelse v.1.2.2 — uofficiel integration.**
-HA, diagnostik og card bruger det interne versionsnummer `1.2.2`.
+**Udgivelse v.1.2.3 — uofficiel integration.**
+HA, diagnostik og card bruger det interne versionsnummer `1.2.3`.
 
 Henter lektier, opgaver, ugeplaner, kalender, beskeder og opslag fra den konto,
 du selv har adgang til på `app.zenbi.dk`. Installeres gennem HACS som et custom
@@ -21,6 +21,14 @@ repository: **https://github.com/Timhonore/ha-zenbi**.
 
 Zenbis officielle appikon er inkluderet. Lokale brandikoner vises i Home
 Assistant fra version 2026.3; tidligere versioner kan vise standardikon.
+
+## Nyt i 1.2.3
+
+- **Opslag** hentes fra Zenbis opslagstavle, som vises på forsiden,
+  frem for dagbogens relationsindlæg. Aktive opslag vises med titel og tekst.
+- Samme datakilde og datofilter som Zenbis forside; højst 100 hentes,
+  og sensorens eksisterende grænse på 50 viste elementer bevares.
+- Opdater i HACS og genstart HA. Kortets resource-URL er uændret.
 
 ## Nyt i 1.2.2
 
@@ -153,7 +161,7 @@ fra HA's entitetsregister; du behøver ikke kende deres entity-id'er.
 
 **Installér kortet:**
 
-1. Opdater Zenbi til **1.2.2** i HACS og genstart HA.
+1. Opdater Zenbi til **1.2.3** i HACS og genstart HA.
 2. Aktivér avanceret tilstand på din HA-profil, hvis Ressourcer ikke vises.
 3. Åbn **Indstillinger → Dashboards → ⋮ → Ressourcer** og tilføj
    `/zenbi-card/zenbi-card.js` som **JavaScript Module**.
@@ -270,7 +278,7 @@ brugerens HA. Kilde: [HA kalenderhandlinger](https://www.home-assistant.io/integ
 - API-ruter, HTTP-metoder, loginfelter, tokenfornyelse, samlinger, tilknytning
   via grupper og kalendergentagelser er kortlagt fra offentlig JavaScript
   leveret af webappen den 11. oktober 2026.
-- 39 automatiske tests med kunstige data er bestået: tokenfornyelse, HTTP-fejl,
+- 41 automatiske tests med kunstige data er bestået: tokenfornyelse, HTTP-fejl,
   gruppefiltrering, tekstkonvertering, gentagelser, flytninger, sommertid og
   delvise kildefejl.
 - Python-filer er syntakskontrolleret.
@@ -319,7 +327,7 @@ størrelsen på HA's tilstande. Længere tekst findes fortsat i Zenbi.
 
 Standardintervallet er 15 minutter. Under integrationens indstillinger kan
 du vælge 5–120 minutter og 7–90 dage frem. Standardperioden er 30 dage frem
-og 2 dage tilbage; opslag hentes yderligere 30 dage tilbage. Ved en
+og 2 dage tilbage. Opslag hentes som aktive opslag fra forsiden. Ved en
 server-rategrænse øges intervallet midlertidigt til mindst 30 minutter.
 **Genkonfigurer** kan ændre relationerne. Gamle entiteter, som ikke længere
 oprettes, kan bagefter fjernes manuelt fra entitetsregisteret.

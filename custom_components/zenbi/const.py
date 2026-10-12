@@ -1,7 +1,7 @@
 """Zenbi constants. Public web-app contracts inspected 2026-10-11."""
 DOMAIN = "zenbi"
 BASE_URL = "https://app.zenbi.dk"
-VERSION = "1.2.2"
+VERSION = "1.2.3"
 ZERO_GUID = "00000000-0000-0000-0000-000000000000"
 CONF_DEVICE_ID = "device_id"
 CONF_ORGANIZATION_ID = "organization_id"
@@ -20,7 +20,7 @@ ENDPOINTS = {
     "child_calendar": "/api/calendar/api/v1/calendaritems/own/relation/users",
     "messages": "/api/message/api/v1/messageitems",
     "unread": "/api/message/api/v1/messageitem/unread/ids",
-    "posts": "/api/diary/api/v1/diary/relations",
+    "posts": "/api/message/api/v1/boards/date",
 }
 NAME_FIELDS = {
     "full": "9689cfbf-868d-451d-af83-61502e188731",

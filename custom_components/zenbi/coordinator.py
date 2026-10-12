@@ -62,8 +62,11 @@ class ZenbiCoordinator(DataUpdateCoordinator):
 
         async def fetch(name):
             async with semaphore:
-                source_start = start - timedelta(days=30) if name == "posts" else start
-                return await self.client.source(name, source_start, end)
+                if name == "posts":
+                    # BoardWidget requests yesterday through now and shows only
+                    # currently active boards (start <= now <= end).
+                    return await self.client.source(name, now - timedelta(days=1), now)
+                return await self.client.source(name, start, end)
 
         names = list(ENDPOINTS)
         results = await asyncio.gather(*(fetch(name) for name in names), return_exceptions=True)
@@ -118,6 +121,10 @@ class ZenbiCoordinator(DataUpdateCoordinator):
                 normalized = []
                 unmapped = 0
                 for row in source:
+                    if name == "posts" and not (
+                        parse_dt(row.get("start"), zone) <= now <= parse_dt(row.get("end"), zone)
+                    ):
+                        continue
                     association = row
                     title = None
                     if name == "homework":

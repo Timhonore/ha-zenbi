@@ -254,14 +254,32 @@ class ApiTest(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(session.calls[-1][1].endswith("/api/authentication/api/v1/globaldata/personfields"))
 
     async def test_posts_query_names_and_read_only_calls(self):
-        session = Session([(200, {"diaries": []})])
+        session = Session([(200, {"boards": []})])
         client = api.ZenbiClient(session, tokens={"token": token(), "refreshToken": "old"})
         now = datetime.now(timezone.utc)
         await client.source("posts", now, now + timedelta(days=1))
         method, url, kwargs = session.calls[0]
-        self.assertTrue(url.endswith("/api/diary/api/v1/diary/relations"))
+        self.assertTrue(url.endswith("/api/message/api/v1/boards/date"))
         self.assertEqual(method, "GET")
-        self.assertEqual({k for k, v in kwargs["params"]}, {"starttime", "endtime"})
+        self.assertEqual({k for k, v in kwargs["params"]}, {"start", "end", "skip", "take"})
+        self.assertEqual(dict(kwargs["params"])["take"], "100")
+
+    async def test_posts_board_response_and_schema_errors(self):
+        board = {"id": "synthetic-board", "title": "Skolekor",
+                 "description": '{"ops":[{"insert":"Tilmelding fredag"}]}',
+                 "start": "2026-10-10T10:32:00+02:00", "end": "2026-11-01T00:00:00+01:00"}
+        client = api.ZenbiClient(Session([(200, {"boards": [board], "boardComments": []})]),
+                                 tokens={"token": token(), "refreshToken": "old"})
+        now = datetime.now(timezone.utc)
+        result = await client.source("posts", now - timedelta(days=1), now)
+        normalized = models.item(result[0], "posts", [])
+        self.assertEqual(normalized["title"], "Skolekor")
+        self.assertEqual(normalized["text"], "Tilmelding fredag")
+        self.assertEqual(normalized["date"], board["start"])
+        client = api.ZenbiClient(Session([(200, {"diaries": []})]),
+                                 tokens={"token": token(), "refreshToken": "old"})
+        with self.assertRaises(models.SchemaError):
+            await client.source("posts", now, now)
 
 
 if __name__ == "__main__":
