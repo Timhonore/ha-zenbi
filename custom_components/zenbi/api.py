@@ -130,10 +130,20 @@ class ZenbiClient:
 
     async def discover(self):
         data = await self.get("/api/authentication/api/v1/globaldata")
-        children, groups = profile(data, self.token_claims)
         organization = await self.get("/api/organisation/api/v1/organisation")
         if not isinstance(organization, dict) or "organisationModel" not in organization:
             raise SchemaError("Missing organisationModel")
+        try:
+            person_fields = await self.get("/api/authentication/api/v1/globaldata/personfields")
+        except AuthenticationError:
+            raise
+        except ZenbiError:
+            # Field labels are optional; unavailable labels must not break all school data.
+            person_fields = {}
+        if not isinstance(person_fields, dict):
+            person_fields = {}
+        metadata = {**self.token_claims, "org": organization["organisationModel"].get("id") or self.token_claims.get("org")}
+        children, groups = profile(data, metadata, person_fields)
         school = organization["organisationModel"].get("name", "Zenbi")
         return children, groups, school
 

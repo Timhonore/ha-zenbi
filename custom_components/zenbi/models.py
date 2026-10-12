@@ -95,10 +95,14 @@ def rows(value, key: str | None = None) -> list[dict]:
     return value
 
 
-def profile(global_data: dict, token_claims: dict) -> tuple[dict, dict]:
+def profile(global_data: dict, token_claims: dict, person_fields: dict | None = None) -> tuple[dict, dict]:
     """Keep relation names, classes, profile pictures and group membership."""
     metadata = {}
     groups = {}
+    class_options = {item["id"]: item.get("name", "")
+                     for field in (person_fields or {}).get("userDefinedPersonFields", [])
+                     if field.get("id") == NAME_FIELDS["class"]
+                     for item in field.get("personFieldModelItems", []) if item.get("id")}
     group_names = {g["id"]: g.get("name", "")
                    for t in global_data.get("groupModelTimeFrames", [])
                    for g in t.get("groupModels", []) if g.get("id")}
@@ -127,7 +131,7 @@ def profile(global_data: dict, token_claims: dict) -> tuple[dict, dict]:
             if fields.get(NAME_FIELDS[k])) or f"Relation {user_id[:8]}"
         school_class = fields.get(NAME_FIELDS["class"], "")
         if re.fullmatch(r"[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}", str(school_class)):
-            school_class = group_names.get(school_class, "")
+            school_class = class_options.get(school_class) or group_names.get(school_class, "")
         children[user_id] = {"name": name, "class": school_class}
         image = fields.get(NAME_FIELDS["picture"])
         if isinstance(image, str) and image and len(image) < 2048:
@@ -136,6 +140,10 @@ def profile(global_data: dict, token_claims: dict) -> tuple[dict, dict]:
                 children[user_id]["picture"] = image
             elif not parsed.scheme and not parsed.netloc and not parsed.query and not parsed.fragment and token_claims.get("org"):
                 children[user_id]["picture"] = f"https://zenbistore.blob.core.windows.net/profile-photos/{guid(token_claims['org'])}/{quote(image.lstrip('/'), safe='/')}"
+        if children[user_id].get("picture"):
+            # PersonImage appends a size to the image identifier; the bare blob is not an image.
+            picture = children[user_id]["picture"].rstrip("/")
+            children[user_id]["picture"] = picture if picture.endswith("/small") else picture + "/small"
     return children, groups
 
 

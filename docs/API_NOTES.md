@@ -81,3 +81,10 @@ Offentlig `global-DcdiRgVK.js` definerer billedfeltet
 bygger billedstien `https://zenbistore.blob.core.windows.net/profile-photos/`
 + organisationens id + `/` + feltets filnavn. Integrationen læser kun
 valgte relationers ukoblede billedmetadata; direkte billedvisning mangler live-test.
+
+Frontendens `PersonImage-CyfxgWtB.js` bruger billedets base-URL + `/small`
+(eller valgt størrelse) og en cacheparameter. En brugerleveret base-URL gav 404;
+med `/small` gav den 200 og `image/jpeg`. Ingen billeder eller person-id'er er
+gemt i repositoryet. Klassens UUID kan være et valg-id: GET
+`/api/authentication/api/v1/globaldata/personfields` returnerer
+`userDefinedPersonFields` med `personFieldModelItems` (`id`, `name`).

@@ -111,7 +111,7 @@ class ModelsTest(unittest.TestCase):
             {"userId": CHILD, "personFieldId": const.NAME_FIELDS["picture"], "value": "child photo.png"},
             {"userId": OTHER, "personFieldId": const.NAME_FIELDS["picture"], "value": "other.png"}]}]}]}
         children, _ = models.profile(data, {"rel": f"{GROUP},{CHILD}", "org": GROUP})
-        self.assertEqual(children[CHILD]["picture"], f"https://zenbistore.blob.core.windows.net/profile-photos/{GROUP}/child%20photo.png")
+        self.assertEqual(children[CHILD]["picture"], f"https://zenbistore.blob.core.windows.net/profile-photos/{GROUP}/child%20photo.png/small")
         self.assertNotIn(OTHER, children)
         field = data["userModelTimeFrames"][0]["userModels"][0]["userMetadata"][0]
         field["value"] = "https://example.test/other.png"
@@ -120,6 +120,14 @@ class ModelsTest(unittest.TestCase):
         field.update(value="child.png", couplingId=OTHER)
         children, _ = models.profile(data, {"rel": f"{GROUP},{CHILD}", "org": GROUP})
         self.assertNotIn("picture", children[CHILD])
+
+    def test_school_class_reference_uses_select_option_name(self):
+        data = {"groupModelTimeFrames": [], "userModelTimeFrames": [{"userModels": [{"userMetadata": [
+            {"userId": CHILD, "personFieldId": const.NAME_FIELDS["class"], "value": OTHER}]}]}]}
+        fields = {"userDefinedPersonFields": [{"id": const.NAME_FIELDS["class"],
+                  "personFieldModelItems": [{"id": OTHER, "name": "2. klasse"}]}]}
+        children, _ = models.profile(data, {"rel": f"{GROUP},{CHILD}"}, fields)
+        self.assertEqual(children[CHILD]["class"], "2. klasse")
 
     def test_school_class_reference_uses_group_name(self):
         data = {"groupModelTimeFrames": [{"users": [], "groupModels": [{"id": GROUP, "name": "1. klasse"}]}],
@@ -201,6 +209,16 @@ class ApiTest(unittest.IsolatedAsyncioTestCase):
             await client.login("test", "dummy")
         await client.select_organization("temporary")
         self.assertIn("token", client.tokens)
+
+    async def test_discover_optional_class_definitions(self):
+        global_data = {"groupModelTimeFrames": [], "userModelTimeFrames": []}
+        for status in (200, 403):
+            session = Session([(200, global_data), (200, {"organisationModel": {"id": GROUP, "name": "Testskole"}}),
+                               (status, {"userDefinedPersonFields": []})])
+            client = api.ZenbiClient(session, tokens={"token": token(), "refreshToken": "old"})
+            children, groups, school = await client.discover()
+            self.assertEqual(school, "Testskole")
+            self.assertTrue(session.calls[-1][1].endswith("/api/authentication/api/v1/globaldata/personfields"))
 
     async def test_posts_query_names_and_read_only_calls(self):
         session = Session([(200, {"diaries": []})])

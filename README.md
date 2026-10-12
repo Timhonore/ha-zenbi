@@ -4,8 +4,8 @@
 
 [![Validate](https://github.com/Timhonore/ha-zenbi/actions/workflows/validate.yml/badge.svg)](https://github.com/Timhonore/ha-zenbi/actions/workflows/validate.yml)
 
-**Udgivelse v.1.0.2 — uofficiel integration.**
-HA, diagnostik og card bruger det interne versionsnummer `1.0.2`.
+**Udgivelse v.1.0.3 — uofficiel integration.**
+HA, diagnostik og card bruger det interne versionsnummer `1.0.3`.
 
 Henter lektier, opgaver, ugeplaner, kalender, beskeder og opslag fra den konto,
 du selv har adgang til på `app.zenbi.dk`. Installeres gennem HACS som et custom
@@ -21,6 +21,13 @@ repository: **https://github.com/Timhonore/ha-zenbi**.
 
 Zenbis officielle appikon er inkluderet. Lokale brandikoner vises i Home
 Assistant fra version 2026.3; tidligere versioner kan vise standardikon.
+
+## Nyt i 1.0.3
+
+- Zenbi-billeder bruger `/small`, som frontendens PersonImage-komponent kræver.
+  Den fulde sti er kontrolleret og returnerer et JPEG-billede; den bare sti giver 404.
+- Klassetitler slås op i `personfields`-valglister samt grupper. Manglende adgang
+  til de ekstra feltdefinitioner afbryder ikke de øvrige datakilder.
 
 ## Nyt i 1.0.2
 
@@ -108,10 +115,10 @@ fra HA's entitetsregister; du behøver ikke kende deres entity-id'er.
 
 **Installér kortet:**
 
-1. Opdater Zenbi til **1.0.2** i HACS og genstart HA.
+1. Opdater Zenbi til **1.0.3** i HACS og genstart HA.
 2. Aktivér avanceret tilstand på din HA-profil, hvis Ressourcer ikke vises.
 3. Åbn **Indstillinger → Dashboards → ⋮ → Ressourcer** og tilføj
-   `/zenbi-card/zenbi-card.js?v=1.0.2` som **JavaScript Module**.
+   `/zenbi-card/zenbi-card.js?v=1.0.3` som **JavaScript Module**.
 4. Genindlæs dashboardet. Tilføj kortet **Zenbi · Skoleoverblik**, eller
    indsæt YAML nedenfor som et manuelt kort.
 
@@ -137,7 +144,8 @@ fx `person.ellen`, til hvert Zenbi-barn. Cardet bruger personens `entity_picture
 som alternativ til Zenbis profilbillede og viser klassen fra Zenbis metadata.
 Børn uden et billede vises fortsat med initialer. Billeder og klasse hentes
 ved integrationsopstart; genindlæs integrationen efter ændringer i Zenbi.
-Den direkte billedvisning er endnu ikke bekræftet med en live forældrekonto.
+Billedstien med `/small` er bekræftet med et rigtigt billede. Cardvisning i HA
+skal bekræftes af brugeren.
 I YAML er `persons` en map fra Zenbis barn-id til HA-personens entity-id.
 
 Card-filen følger med integrationens HACS-download. Den kræver en opsat Zenbi-
@@ -190,7 +198,7 @@ Screenshots viser demodata. Kortet skal stadig prøves med din faktiske HA-insta
 - API-ruter, HTTP-metoder, loginfelter, tokenfornyelse, samlinger, tilknytning
   via grupper og kalendergentagelser er kortlagt fra offentlig JavaScript
   leveret af webappen den 11. oktober 2026.
-- 24 automatiske tests med kunstige data er bestået: tokenfornyelse, HTTP-fejl,
+- 26 automatiske tests med kunstige data er bestået: tokenfornyelse, HTTP-fejl,
   gruppefiltrering, tekstkonvertering, gentagelser, flytninger, sommertid og
   delvise kildefejl.
 - Python-filer er syntakskontrolleret.
