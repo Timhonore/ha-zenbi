@@ -1,5 +1,5 @@
 /* Zenbi Card — no external dependencies. MIT; official icon retains Zenbi's rights. */
-const VERSION = "1.2.0";
+const VERSION = "1.2.1";
 const esc = (v) =>
   String(v ?? "").replace(
     /[&<>"']/g,
@@ -106,6 +106,30 @@ function isoWeek(value) {
   date.setUTCDate(date.getUTCDate() + 3 - ((date.getUTCDay() + 6) % 7));
   const year = date.getUTCFullYear();
   return {year, number: Math.ceil(((date - new Date(`${year}-01-01T12:00:00Z`)) / 86400000 + 1) / 7)};
+}
+function mergeTimetableSupport(rows) {
+  const isSupport = row => /\bstøtte\b/iu.test(row.title || "") && !/(?:m\.|med)\s*støtte/iu.test(row.title || "");
+  const support = rows.filter(isSupport);
+  const used = new Map(support.map(row => [row, new Set()]));
+  const period = row => `${Boolean(row.all_day)}:${Date.parse(row.date)}:${Date.parse(row.end)}`;
+  const result = [];
+  for (const lesson of rows.filter(row => !isSupport(row))) {
+    const matches = support.filter(row => period(row) === period(lesson) && row.children.some(id => lesson.children.includes(id)));
+    if (!matches.length) {result.push(lesson); continue;}
+    const supported = lesson.children.filter(id => matches.some(row => row.children.includes(id)));
+    for (const row of matches) for (const id of supported) if (row.children.includes(id)) used.get(row).add(id);
+    const unsupported = lesson.children.filter(id => !supported.includes(id));
+    const notes = [...new Set(matches.map(row => row.text?.trim()).filter(value => value && value !== lesson.text?.trim()))];
+    result.push({...lesson, id:`${lesson.id}:support:${[...supported].sort().join(",")}`, children:supported,
+      title:/(?:m\.|med)\s*støtte/iu.test(lesson.title) ? lesson.title : `${lesson.title} m. Støtte`,
+      text:[lesson.text, ...(notes.length ? [`Støtte:\n${notes.join("\n\n")}`] : [])].filter(Boolean).join("\n\n")});
+    if (unsupported.length) result.push({...lesson, id:`${lesson.id}:without-support`, children:unsupported});
+  }
+  for (const row of support) {
+    const remaining = row.children.filter(id => !used.get(row).has(id));
+    if (remaining.length) result.push({...row,children:remaining});
+  }
+  return result;
 }
 const css = `
 :host{display:block;--z-accent:#008cb7;container-type:inline-size;--z-soft:color-mix(in srgb,var(--z-accent) 9%,var(--ha-card-background,var(--card-background-color,#fff)));--z-muted:var(--secondary-text-color,#6b7885)}
@@ -613,7 +637,10 @@ class ZenbiCard extends HTMLElement {
   _timetableContent(active) {
     if (this._weeklyError) return this._empty("Skoleskemaet kunne ikke hentes", "Prøv Opdater, eller kontrollér barnets kalender og kortets Zenbi-konto.", "calendar-alert");
     if (this._weeklyLoading || !this._weeklyData) return this._empty("Henter skoleskema…", "Timer og aktiviteter for den valgte uge.", "timetable");
-    const rows = this._weeklyData.items.filter(row => active.id === "all" || row.children.includes(active.zenbi_id || active.id));
+    const childId = active.zenbi_id || active.id;
+    const selectedRows = this._weeklyData.items.filter(row => active.id === "all" || row.children.includes(childId))
+      .map(row => active.id === "all" ? row : {...row,children:[childId]});
+    const rows = mergeTimetableSupport(selectedRows);
     const notice = (this._weeklyData.unmapped ? '<div class="notice">Nogle skemapunkter kunne ikke knyttes til børnene.</div>' : "") +
       (this._weeklyData.clipped ? '<div class="notice">Skemaet er afkortet. Se alle punkter i Zenbi.</div>' : "");
     if (!rows.length) return notice + this._empty("Intet skoleskema denne uge", "Der er ingen skemapunkter for det valgte barn i den hentede uge.", "timetable");

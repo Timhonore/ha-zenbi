@@ -4,8 +4,8 @@
 
 [![Validate](https://github.com/Timhonore/ha-zenbi/actions/workflows/validate.yml/badge.svg)](https://github.com/Timhonore/ha-zenbi/actions/workflows/validate.yml)
 
-**Udgivelse v.1.2 — uofficiel integration.**
-HA, diagnostik og card bruger det interne versionsnummer `1.2.0`.
+**Udgivelse v.1.2.1 — uofficiel integration.**
+HA, diagnostik og card bruger det interne versionsnummer `1.2.1`.
 
 Henter lektier, opgaver, ugeplaner, kalender, beskeder og opslag fra den konto,
 du selv har adgang til på `app.zenbi.dk`. Installeres gennem HACS som et custom
@@ -21,6 +21,14 @@ repository: **https://github.com/Timhonore/ha-zenbi**.
 
 Zenbis officielle appikon er inkluderet. Lokale brandikoner vises i Home
 Assistant fra version 2026.3; tidligere versioner kan vise standardikon.
+
+## Nyt i 1.2.1
+
+- Støttepunkter i præcis samme tidsrum som et fag for samme barn samles i én
+  række, fx **0A naturfag m. Støtte**. Ekstra støttetekst bevares i den udfoldede tekst.
+- I visningen med alle børn tilføjes støtte kun for de børn, den gælder for.
+  Støtte uden et matchende fag/tidsrum vises fortsat som et selvstændigt punkt.
+- Sammenlægningen gælder kun cardets skoleskema; kalenderens data ændres ikke.
 
 ## Nyt i 1.2.0
 
@@ -137,7 +145,7 @@ fra HA's entitetsregister; du behøver ikke kende deres entity-id'er.
 
 **Installér kortet:**
 
-1. Opdater Zenbi til **1.2.0** i HACS og genstart HA.
+1. Opdater Zenbi til **1.2.1** i HACS og genstart HA.
 2. Aktivér avanceret tilstand på din HA-profil, hvis Ressourcer ikke vises.
 3. Åbn **Indstillinger → Dashboards → ⋮ → Ressourcer** og tilføj
    `/zenbi-card/zenbi-card.js` som **JavaScript Module**.

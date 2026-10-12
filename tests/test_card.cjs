@@ -158,6 +158,7 @@ const root = path.resolve(__dirname, "..");
         if (!["zenbi/weekly_plans","zenbi/timetable"].includes(request.type)) return rows;
         if (request.type === "zenbi/timetable") return {week:request.week,unmapped:0,clipped:false,items:[
           {id:"danish",title:"Dansk",text:"Husk læsebogen",date:request.week+"T08:00:00+02:00",end:request.week+"T08:45:00+02:00",children:["freja"],all_day:false},
+          {id:"support",title:"0A støtte",text:"Ekstra voksen",date:request.week+"T06:00:00Z",end:request.week+"T06:45:00Z",children:["freja"],all_day:false},
           {id:"math",title:"Matematik",text:"",date:request.week+"T09:00:00+02:00",end:request.week+"T09:45:00+02:00",children:["oscar"],all_day:false}]};
         window.weekCalls ||= [];
         weekCalls.push(request);
@@ -302,19 +303,38 @@ const root = path.resolve(__dirname, "..");
     "API text never renders HTML",
   );
   assert.equal(await page.evaluate(() => window.injected), undefined);
+  const supportCases = await page.evaluate(() => {
+    const base = {date:"2026-10-12T08:00:00+02:00",end:"2026-10-12T08:45:00+02:00",all_day:false,text:""};
+    const input = [{...base,id:"shared",title:"Naturfag",children:["freja","oscar"]},
+      {...base,id:"support",title:"0A STØTTE",text:"En voksen hjælper",children:["freja"]},
+      {...base,id:"unmatched",title:"2A støtte",date:"2026-10-12T09:00:00+02:00",end:"2026-10-12T09:45:00+02:00",children:["oscar"]}];
+    const before = JSON.stringify(input);
+    const output = mergeTimetableSupport(input);
+    const mismatch = mergeTimetableSupport([{...base,id:"lesson",title:"Musik",children:["freja"]},
+      {...base,id:"short",title:"Støtte",end:"2026-10-12T08:15:00+02:00",children:["freja"]}]);
+    return {output, unchanged:before===JSON.stringify(input), mismatchCount:mismatch.length};
+  });
+  assert.equal(supportCases.unchanged, true, "Card does not mutate original calendar data");
+  assert.equal(supportCases.output.length, 3);
+  assert.deepEqual(supportCases.output.find(row => row.title === "Naturfag m. Støtte").children, ["freja"]);
+  assert.deepEqual(supportCases.output.find(row => row.title === "Naturfag").children, ["oscar"]);
+  assert.equal(supportCases.output.find(row => row.id === "unmatched").title, "2A støtte");
+  assert.equal(supportCases.mismatchCount, 2, "Different end times do not merge");
   // School timetable is a separate topic with timed rows and child filtering.
   await card.getByRole("button", {name:"Alle børn",exact:true}).click();
   await card.locator("nav button[data-tab=timetable]").click();
   await page.evaluate(() => {card._week="2026-10-12";card._render();card._loadWeek(true);});
-  await card.getByText("Dansk", {exact:true}).waitFor();
-  assert.equal(await card.locator(".lesson").count(), 2);
+  await card.getByText("Dansk m. Støtte", {exact:true}).waitFor();
+  assert.equal(await card.locator(".lesson").count(), 2, "Support and matching lesson form one row");
+  assert.equal(await card.getByText("0A støtte", {exact:true}).count(), 0);
   assert.equal(await card.locator(".lesson-time strong").first().textContent(), "08:00");
   assert.equal(await card.locator(".timetable-day").count(), 5, "Empty school weekdays remain visible");
   await card.getByRole("button", {name:"Freja",exact:true}).click();
   assert.equal(await card.locator(".lesson").count(), 1);
   assert.equal(await card.getByText("Matematik", {exact:true}).count(), 0, "Other child lessons are excluded");
   await card.locator(".lesson summary").click();
-  await card.getByText("Husk læsebogen", {exact:true}).waitFor();
+  assert.match(await card.locator(".lesson[open] .body").textContent(), /Husk læsebogen/);
+  assert.match(await card.locator(".lesson[open] .body").textContent(), /Ekstra voksen/);
   assert.equal(await card.locator(".week-picker").count(), 1);
   if (process.env.ZENBI_SCREENSHOTS) {
     fs.mkdirSync(path.join(root,"docs/images"),{recursive:true});
