@@ -28,4 +28,5 @@ NAME_FIELDS = {
     "middle": "6c96f310-0a24-49b5-9403-0e460304f6a7",
     "last": "a117ca7c-e0a8-4d34-8034-d477ef045689",
     "class": "95cfa0c2-fa5c-4f29-85a5-ab490d8ace66",
+    "picture": "c4c7bc12-045d-462e-8acb-af5533f670fb",
 }

@@ -73,3 +73,11 @@ Beta.3: Første HA-diagnostik viste kun posts=PermissionError (HTTP 403);
 øvrige syv kilder var ok. Offentlig diary-store definerer postsRelations
 på /diary/relations med starttime/endtime og samme diaries-samling.
 Den tidligere /diary/dates-rute beholdes ikke som fallback ved en afvisning.
+
+## Profilbilleder (12. oktober 2026)
+
+Offentlig `global-DcdiRgVK.js` definerer billedfeltet
+`c4c7bc12-045d-462e-8acb-af5533f670fb` (`imageUrl`). Frontendens handlers
+bygger billedstien `https://zenbistore.blob.core.windows.net/profile-photos/`
++ organisationens id + `/` + feltets filnavn. Integrationen læser kun
+valgte relationers ukoblede billedmetadata; direkte billedvisning mangler live-test.

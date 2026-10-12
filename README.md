@@ -30,7 +30,8 @@ Assistant fra version 2026.3; tidligere versioner kan vise standardikon.
 - Hvert kort har sit eget valg, og mindst ét emne skal være valgt.
 - Børnenes sensorer har attributterne `barn_id`, `barn_navn` og `klasse`.
 - Cardeditoren kan knytte et barn til en eksisterende HA-person for at vise
-  personens profilbillede. Klassen vises fra Zenbi. HA-personer ændres ikke.
+  personens profilbillede. Uden et personvalg bruges Zenbis billede, hvis det
+  findes. Klassen vises fra Zenbi. HA-personer ændres ikke.
 
 ## Nyt i 1.0.0
 
@@ -129,8 +130,10 @@ Valget påvirker kun dette kort; integrationens sensorer og kalendere fortsætte
 
 Under **Børnenes profilbilleder** kan du vælge en eksisterende HA-person,
 fx `person.ellen`, til hvert Zenbi-barn. Cardet bruger personens `entity_picture`
-og viser barnets klasse fra Zenbis metadata. Intet billede hentes direkte fra Zenbi
-med denne version. Børn uden et billede vises fortsat med initialer.
+som alternativ til Zenbis profilbillede og viser klassen fra Zenbis metadata.
+Børn uden et billede vises fortsat med initialer. Billeder og klasse hentes
+ved integrationsopstart; genindlæs integrationen efter ændringer i Zenbi.
+Den direkte billedvisning er endnu ikke bekræftet med en live forældrekonto.
 I YAML er `persons` en map fra Zenbis barn-id til HA-personens entity-id.
 
 Card-filen følger med integrationens HACS-download. Den kræver en opsat Zenbi-
@@ -183,7 +186,7 @@ Screenshots viser demodata. Kortet skal stadig prøves med din faktiske HA-insta
 - API-ruter, HTTP-metoder, loginfelter, tokenfornyelse, samlinger, tilknytning
   via grupper og kalendergentagelser er kortlagt fra offentlig JavaScript
   leveret af webappen den 11. oktober 2026.
-- 23 automatiske tests med kunstige data er bestået: tokenfornyelse, HTTP-fejl,
+- 24 automatiske tests med kunstige data er bestået: tokenfornyelse, HTTP-fejl,
   gruppefiltrering, tekstkonvertering, gentagelser, flytninger, sommertid og
   delvise kildefejl.
 - Python-filer er syntakskontrolleret.

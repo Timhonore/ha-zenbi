@@ -53,6 +53,12 @@ class ZenbiSensor(ZenbiEntity, SensorEntity):
         return self.coordinator.items(self.kind, self.child_id)
 
     @property
+    def entity_picture(self):
+        if self.child_id:
+            return self.coordinator.children.get(self.child_id, {}).get("picture")
+        return None
+
+    @property
     def native_value(self):
         if self.kind == "status":
             return "ok" if all(s == "ok" for s in self.coordinator.data["status"].values()) else "delvis"

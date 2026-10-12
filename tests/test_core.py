@@ -106,6 +106,21 @@ class ModelsTest(unittest.TestCase):
         self.assertNotIn("sensitive", str(children))
         self.assertEqual(groups[CHILD], {GROUP})
 
+    def test_profile_picture_metadata(self):
+        data = {"groupModelTimeFrames": [], "userModelTimeFrames": [{"userModels": [{"userMetadata": [
+            {"userId": CHILD, "personFieldId": const.NAME_FIELDS["picture"], "value": "child photo.png"},
+            {"userId": OTHER, "personFieldId": const.NAME_FIELDS["picture"], "value": "other.png"}]}]}]}
+        children, _ = models.profile(data, {"rel": f"{GROUP},{CHILD}", "org": GROUP})
+        self.assertEqual(children[CHILD]["picture"], f"https://zenbistore.blob.core.windows.net/profile-photos/{GROUP}/child%20photo.png")
+        self.assertNotIn(OTHER, children)
+        field = data["userModelTimeFrames"][0]["userModels"][0]["userMetadata"][0]
+        field["value"] = "https://example.test/other.png"
+        children, _ = models.profile(data, {"rel": f"{GROUP},{CHILD}", "org": GROUP})
+        self.assertNotIn("picture", children[CHILD])
+        field.update(value="child.png", couplingId=OTHER)
+        children, _ = models.profile(data, {"rel": f"{GROUP},{CHILD}", "org": GROUP})
+        self.assertNotIn("picture", children[CHILD])
+
     def test_school_class_reference_uses_group_name(self):
         data = {"groupModelTimeFrames": [{"users": [], "groupModels": [{"id": GROUP, "name": "1. klasse"}]}],
                 "userModelTimeFrames": [{"userModels": [{"userMetadata": [

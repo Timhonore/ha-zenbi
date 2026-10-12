@@ -125,6 +125,7 @@ const root = path.resolve(__dirname, "..");
       "Beskeder",
     );
     states["sensor.demo_homework_freja"].attributes.klasse = "2.A";
+    states["sensor.demo_homework_freja"].attributes.entity_picture = "/zenbi-card/icon.png?zenbi";
     states["person.demo_freja"] = {state:"home",attributes:{friendly_name:"Freja",entity_picture:"/zenbi-card/icon.png"}};
     add("unread", "all", 2, [], "Ulæste beskeder");
     add("posts", "all", 0, [], "Opslag");
@@ -319,6 +320,8 @@ const root = path.resolve(__dirname, "..");
     await page.evaluate(() => editorConfig.title),
     "Familiens skole",
   );
+  assert.equal(await card.locator("button[data-child=freja] .avatar img").getAttribute("src"), "/zenbi-card/icon.png?zenbi",
+    "Zenbi child picture is used by default");
   await page.locator("zenbi-card-editor select[data-person-child=freja]").selectOption("person.demo_freja");
   assert.equal(await page.evaluate(() => editorConfig.persons.freja), "person.demo_freja",
     "Editor stores the child's selected HA person");

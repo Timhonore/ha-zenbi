@@ -8,6 +8,7 @@ from html.parser import HTMLParser
 import json
 import re
 from uuid import UUID
+from urllib.parse import quote, urlsplit
 from zoneinfo import ZoneInfo
 
 from .const import NAME_FIELDS, ZERO_GUID
@@ -95,7 +96,7 @@ def rows(value, key: str | None = None) -> list[dict]:
 
 
 def profile(global_data: dict, token_claims: dict) -> tuple[dict, dict]:
-    """Keep only names/classes of relations and group membership for filtering."""
+    """Keep relation names, classes, profile pictures and group membership."""
     metadata = {}
     groups = {}
     group_names = {g["id"]: g.get("name", "")
@@ -113,6 +114,8 @@ def profile(global_data: dict, token_claims: dict) -> tuple[dict, dict]:
     for timeframe in rows(global_data, "userModelTimeFrames"):
         for user in timeframe.get("userModels", []):
             for item in user.get("userMetadata", []):
+                if item.get("personFieldId") == NAME_FIELDS["picture"] and item.get("couplingId") not in (None, ZERO_GUID):
+                    continue
                 if item.get("personFieldId") in NAME_FIELDS.values():
                     metadata.setdefault(item["userId"], {})[item["personFieldId"]] = item.get("value", "")
     related = guid_list(token_claims.get("rel", ""))[1::2]
@@ -126,6 +129,13 @@ def profile(global_data: dict, token_claims: dict) -> tuple[dict, dict]:
         if re.fullmatch(r"[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}", str(school_class)):
             school_class = group_names.get(school_class, "")
         children[user_id] = {"name": name, "class": school_class}
+        image = fields.get(NAME_FIELDS["picture"])
+        if isinstance(image, str) and image and len(image) < 2048:
+            parsed = urlsplit(image)
+            if parsed.scheme == "https" and parsed.netloc == "zenbistore.blob.core.windows.net" and parsed.path.startswith("/profile-photos/") and not parsed.query and not parsed.fragment:
+                children[user_id]["picture"] = image
+            elif not parsed.scheme and not parsed.netloc and not parsed.query and not parsed.fragment and token_claims.get("org"):
+                children[user_id]["picture"] = f"https://zenbistore.blob.core.windows.net/profile-photos/{guid(token_claims['org'])}/{quote(image.lstrip('/'), safe='/')}"
     return children, groups
 
 
