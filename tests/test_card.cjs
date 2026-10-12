@@ -155,7 +155,10 @@ const root = path.resolve(__dirname, "..");
       states,
       config: { time_zone: "Europe/Copenhagen" },
       callWS: async request => {
-        if (request.type !== "zenbi/weekly_plans") return rows;
+        if (!["zenbi/weekly_plans","zenbi/timetable"].includes(request.type)) return rows;
+        if (request.type === "zenbi/timetable") return {week:request.week,unmapped:0,clipped:false,items:[
+          {id:"danish",title:"Dansk",text:"Husk læsebogen",date:request.week+"T08:00:00+02:00",end:request.week+"T08:45:00+02:00",children:["freja"],all_day:false},
+          {id:"math",title:"Matematik",text:"",date:request.week+"T09:00:00+02:00",end:request.week+"T09:45:00+02:00",children:["oscar"],all_day:false}]};
         window.weekCalls ||= [];
         weekCalls.push(request);
         return {week:request.week,items:[{...plan,date:request.week,children:["freja","oscar"]}],unmapped:0,clipped:false};
@@ -299,6 +302,25 @@ const root = path.resolve(__dirname, "..");
     "API text never renders HTML",
   );
   assert.equal(await page.evaluate(() => window.injected), undefined);
+  // School timetable is a separate topic with timed rows and child filtering.
+  await card.getByRole("button", {name:"Alle børn",exact:true}).click();
+  await card.locator("nav button[data-tab=timetable]").click();
+  await page.evaluate(() => {card._week="2026-10-12";card._render();card._loadWeek(true);});
+  await card.getByText("Dansk", {exact:true}).waitFor();
+  assert.equal(await card.locator(".lesson").count(), 2);
+  assert.equal(await card.locator(".lesson-time strong").first().textContent(), "08:00");
+  assert.equal(await card.locator(".timetable-day").count(), 5, "Empty school weekdays remain visible");
+  await card.getByRole("button", {name:"Freja",exact:true}).click();
+  assert.equal(await card.locator(".lesson").count(), 1);
+  assert.equal(await card.getByText("Matematik", {exact:true}).count(), 0, "Other child lessons are excluded");
+  await card.locator(".lesson summary").click();
+  await card.getByText("Husk læsebogen", {exact:true}).waitFor();
+  assert.equal(await card.locator(".week-picker").count(), 1);
+  if (process.env.ZENBI_SCREENSHOTS) {
+    fs.mkdirSync(path.join(root,"docs/images"),{recursive:true});
+    await card.screenshot({path:path.join(root,"docs/images/zenbi-timetable.png")});
+  }
+  await card.getByRole("button", {name:"Oscar",exact:true}).click();
   // Week switching crosses ISO years and fetches data outside the sensor range.
   await card.locator("nav button[data-tab=weekly_plans]").click();
   await card.getByText("Ugeplan", {exact:true}).last().waitFor();
@@ -368,7 +390,7 @@ const root = path.resolve(__dirname, "..");
   });
   assert.equal(await card.locator("button[data-child=freja] .avatar img").getAttribute("src"), "/zenbi-card/icon.png?updated",
     "Person-only state changes update the photo");
-  for (const topic of ["homework", "messages", "weekly_plans", "posts"])
+  for (const topic of ["homework", "timetable", "messages", "weekly_plans", "posts"])
     await page.locator(`zenbi-card-editor input[data-topic=${topic}]`).uncheck();
   assert.deepEqual(await page.evaluate(() => editorConfig.topics), ["calendar"],
     "Editor saves the selected topics");

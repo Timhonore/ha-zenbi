@@ -26,6 +26,7 @@ class ZenbiCoordinator(DataUpdateCoordinator):
         self.options_snapshot = dict(entry.options)
         self.client = client
         self._weekly_cache = {}
+        self._timetable_cache = {}
         self._weekly_lock = asyncio.Lock()
         self.children = {}
         self.groups = {}
@@ -135,6 +136,7 @@ class ZenbiCoordinator(DataUpdateCoordinator):
         if not any(v == "ok" for v in status.values()):
             raise UpdateFailed("Ingen Zenbi-datakilder kunne hentes")
         self._weekly_cache.clear()
+        self._timetable_cache.clear()
         return data
 
     async def async_weekly_plans(self, week):
@@ -169,6 +171,38 @@ class ZenbiCoordinator(DataUpdateCoordinator):
             if len(self._weekly_cache) >= 16:
                 self._weekly_cache.pop(next(iter(self._weekly_cache)))
             self._weekly_cache[key] = (monotonic(), value)
+            return value
+
+    async def async_timetable(self, week):
+        """The child-calendar points shown below Zenbi's weekly plans."""
+        if week.weekday() != 0:
+            raise ValueError("Week must start on Monday")
+        key = week.isoformat()
+        async with self._weekly_lock:
+            cached = self._timetable_cache.get(key)
+            if cached and monotonic() - cached[0] < 300:
+                return cached[1]
+            zone = self.hass.config.time_zone
+            start = datetime.combine(week, time.min, ZoneInfo(zone))
+            end = start + timedelta(days=7)
+            source = await self.client.source("child_calendar", start, end)
+            source = visible_calendar(source, guid(self.client.token_claims["usr"]), self.groups)
+            result = []
+            unmapped = 0
+            for row in source:
+                child_ids = children_for(row, self.children, self.groups)
+                if not child_ids:
+                    unmapped += 1
+                    continue
+                for event in expand_calendar([row], start, end, zone):
+                    result.append({"id": event["id"], "kind":"timetable", "title":event["title"],
+                                   "text":event["text"][:4000], "date":event["start"], "end":event["end"],
+                                   "all_day":event["all_day"], "children":child_ids})
+            result.sort(key=lambda row: row["date"])
+            value = {"week":key, "items":result[:200], "clipped":len(result)>200, "unmapped":unmapped}
+            if len(self._timetable_cache) >= 16:
+                self._timetable_cache.pop(next(iter(self._timetable_cache)))
+            self._timetable_cache[key] = (monotonic(), value)
             return value
 
     def items(self, kind, child_id=None):

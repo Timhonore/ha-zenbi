@@ -96,3 +96,13 @@ og mandagens ISO-dato. Den henter syv dage fra `weeklyschedules/relations`
 i HA's tidszone, knytter rækker til de konfigurerede børn og returnerer højst
 50 normaliserede planer. Adgang til de tilhørende ugeplansensorer kontrolleres
 med HA's læserettigheder. Sensorpoll og periodetællere ændres ikke.
+
+## Skoleskema fra ugeplansvisningen (v1.2.0)
+
+Offentlig `WeeklyPlans-ecevEEr5.js` kalder `get_relations` for forældrevisningen.
+`calendar-DLjUOcNW.js` definerer denne som
+`/api/calendar/api/v1/calendaritems/own/relation/users`, samme rute som
+integrationens børnekalender. `zenbi/timetable` henter den valgte uge,
+ekspanderer gentagelser og kontrollerer læserettigheder til børnekalenderne.
+Cardet grupperer skemapunkterne efter dag i HA's tidszone. Der er ingen
+påstået separat fag-database; skoleaktiviteter fra denne kalender kan også vises.

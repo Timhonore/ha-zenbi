@@ -4,8 +4,8 @@
 
 [![Validate](https://github.com/Timhonore/ha-zenbi/actions/workflows/validate.yml/badge.svg)](https://github.com/Timhonore/ha-zenbi/actions/workflows/validate.yml)
 
-**Udgivelse v.1.1 — uofficiel integration.**
-HA, diagnostik og card bruger det interne versionsnummer `1.1.0`.
+**Udgivelse v.1.2 — uofficiel integration.**
+HA, diagnostik og card bruger det interne versionsnummer `1.2.0`.
 
 Henter lektier, opgaver, ugeplaner, kalender, beskeder og opslag fra den konto,
 du selv har adgang til på `app.zenbi.dk`. Installeres gennem HACS som et custom
@@ -21,6 +21,16 @@ repository: **https://github.com/Timhonore/ha-zenbi**.
 
 Zenbis officielle appikon er inkluderet. Lokale brandikoner vises i Home
 Assistant fra version 2026.3; tidligere versioner kan vise standardikon.
+
+## Nyt i 1.2.0
+
+- **Skoleskema** er et separat emne i korteditoren (`timetable` i YAML).
+- Viser børnenes kalenderpunkter fra Zenbis ugeplansvisning, opdelt efter dag,
+  med start/sluttid, fag eller aktivitet og eventuel uddybende tekst.
+- Børnevalg og ugevælger virker også i skoleskemaet. Tomme skoledage vises,
+  og weekenddage med aktiviteter kommer med.
+- Adgang til de tilhørende børnekalendere kontrolleres, og private begivenheder
+  følger samme maskering som integrationens eksisterende kalender.
 
 ## Nyt i 1.1.0
 
@@ -121,13 +131,13 @@ bruges fortsat automatisk på integrationssiden i HA 2026.3+.
 ## Zenbi Card
 
 Et kort uden ekstra card-afhængigheder, med Zenbis ikon, lys/mørk tilstand,
-børnevælger, lektier og opgaver, syvdageskalender, beskeder, ugeplaner og
+børnevælger, lektier og opgaver, syvdageskalender, skoleskema, beskeder, ugeplaner og
 opslag. Tryk på et element for at folde teksten ud. Børn og entiteter findes
 fra HA's entitetsregister; du behøver ikke kende deres entity-id'er.
 
 **Installér kortet:**
 
-1. Opdater Zenbi til **1.1.0** i HACS og genstart HA.
+1. Opdater Zenbi til **1.2.0** i HACS og genstart HA.
 2. Aktivér avanceret tilstand på din HA-profil, hvis Ressourcer ikke vises.
 3. Åbn **Indstillinger → Dashboards → ⋮ → Ressourcer** og tilføj
    `/zenbi-card/zenbi-card.js` som **JavaScript Module**.
@@ -141,6 +151,7 @@ max_items: 5
 topics:
   - homework
   - calendar
+  - timetable
   - messages
   - weekly_plans
   - posts
@@ -150,6 +161,11 @@ Vælg emner under **Emner på kortet** i den visuelle editor. I YAML kan fx
 `topics: [homework, calendar]` vise kun lektier og kalender. Uden `topics`
 vises alle emner. Ældre `show_posts: false` virker stadig, når `topics` ikke er sat.
 Valget påvirker kun dette kort; integrationens sensorer og kalendere fortsætter.
+
+For at tilføje skoleskemaet: åbn korteditoren og markér **Skoleskema** under
+**Emner på kortet**. I YAML kan fx `topics: [timetable]` vise skemaet alene.
+Tidspunkterne følger HA's tidszone. Skemaet bruger samme relationskalender,
+som Zenbi viser under ugeplanen, så også skoleaktiviteter kan fremgå.
 
 På ugeplansfanen vælger du uge i rækken nederst eller med pilene.
 **Denne uge** går tilbage til den aktuelle uge i HA's tidszone. Hentede uger
@@ -215,7 +231,7 @@ Screenshots viser demodata. Kortet skal stadig prøves med din faktiske HA-insta
 - API-ruter, HTTP-metoder, loginfelter, tokenfornyelse, samlinger, tilknytning
   via grupper og kalendergentagelser er kortlagt fra offentlig JavaScript
   leveret af webappen den 11. oktober 2026.
-- 32 automatiske tests med kunstige data er bestået: tokenfornyelse, HTTP-fejl,
+- 36 automatiske tests med kunstige data er bestået: tokenfornyelse, HTTP-fejl,
   gruppefiltrering, tekstkonvertering, gentagelser, flytninger, sommertid og
   delvise kildefejl.
 - Python-filer er syntakskontrolleret.

@@ -1,5 +1,5 @@
 /* Zenbi Card — no external dependencies. MIT; official icon retains Zenbi's rights. */
-const VERSION = "1.1.0";
+const VERSION = "1.2.0";
 const esc = (v) =>
   String(v ?? "").replace(
     /[&<>"']/g,
@@ -80,6 +80,7 @@ async function registry(hass) {
 const tabs = [
   ["homework", "Lektier", "book-open-page-variant"],
   ["calendar", "Kalender", "calendar-outline"],
+  ["timetable", "Skoleskema", "timetable"],
   ["messages", "Beskeder", "email-outline"],
   ["weekly_plans", "Ugeplan", "view-week-outline"],
   ["posts", "Opslag", "bulletin-board"],
@@ -87,8 +88,8 @@ const tabs = [
 function selectedTopics(config) {
   return config.topics || tabs.map(([id]) => id).filter(id => id !== "posts" || config.show_posts !== false);
 }
-function dateInZone(zone) {
-  const parts = new Intl.DateTimeFormat("en-GB", {timeZone:zone,year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());
+function dateInZone(zone, value = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-GB", {timeZone:zone,year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(value);
   const field = key => parts.find(part => part.type === key).value;
   return `${field("year")}-${field("month")}-${field("day")}`;
 }
@@ -112,6 +113,7 @@ const css = `
 button,a,summary,select{font:inherit}button,a,summary{touch-action:manipulation}button{cursor:pointer;color:inherit}button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid var(--z-accent);outline-offset:3px}button:disabled{cursor:wait;opacity:.5}button{border:0;background:none}ha-icon{--mdc-icon-size:20px;flex:none}header{padding:24px 24px 20px;background:linear-gradient(125deg,var(--z-soft),transparent 85%)}
 .top{display:flex;align-items:center;gap:12px}.logo{width:43px;height:43px;object-fit:contain}.heading{flex:1;min-width:0}h1{font-size:21px;margin:0;letter-spacing:-.5px;font-weight:750}.eyebrow{font-size:10px;letter-spacing:1.7px;font-weight:700;color:var(--z-accent);margin:0 0 5px;text-transform:uppercase}.refresh{padding:10px;border-radius:50%;background:var(--ha-card-background,var(--card-background-color,#fff));display:grid;place-items:center}.sub{font-size:12px;color:var(--z-muted);margin:15px 0 0;display:flex;align-items:center;gap:7px}.dot{width:6px;height:6px;background:#2eb590;border-radius:100%}.dot.warn{background:#e7a244}.children{display:flex;flex-wrap:wrap;gap:8px;overflow:auto;margin-top:20px;padding:3px 2px}.child{display:flex;gap:8px;align-items:center;padding:6px 13px 6px 6px;white-space:nowrap;border:1px solid var(--divider-color,#e6edf0);border-radius:30px;background:var(--ha-card-background,var(--card-background-color,#fff));font-size:13px;font-weight:650}.child.active{background:var(--z-accent);border-color:var(--z-accent);color:#fff}.avatar{height:27px;width:27px;border-radius:50%;display:grid;place-items:center;background:var(--z-soft);color:var(--z-accent);font-size:11px;font-weight:700}.active .avatar{background:#ffffff30;color:#fff}.avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}.child-copy{display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.1}.child-class{font-size:10px;font-weight:400;line-height:1.1;opacity:.8}.stats{display:grid;grid-template-columns:repeat(var(--z-stat-count,3),minmax(0,1fr));gap:10px;padding:0 24px;margin-top:4px}.stat{background:var(--z-soft);border-radius:16px;padding:14px;text-align:left;display:flex;flex-direction:column;gap:5px}.stat-top{display:flex;align-items:center;justify-content:space-between;color:var(--z-accent)}.number{font-size:26px;font-weight:750;line-height:1}.stat-label{font-size:11px;color:var(--z-muted)}nav{display:flex;gap:5px;overflow:auto;padding:21px 24px 14px;scrollbar-width:thin}.tab{display:flex;flex:none;gap:6px;align-items:center;white-space:nowrap;border-radius:10px;padding:9px 11px;font-size:12px;font-weight:650;color:var(--z-muted)}.tab.active{background:var(--z-soft);color:var(--z-accent)}.tab ha-icon{--mdc-icon-size:16px}.badge{font-size:10px;min-width:17px;padding:2px 4px;background:var(--z-accent);color:white;border-radius:5px;text-align:center}.content{padding:0 24px 20px}.section-title{font-size:11px;color:var(--z-muted);letter-spacing:1.1px;text-transform:uppercase;margin:4px 0 12px;font-weight:700}.item{border:1px solid var(--divider-color,#e6edf0);border-radius:15px;margin-bottom:9px;padding:14px}.item summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px}.item summary::-webkit-details-marker{display:none}.item .copy{flex:1;min-width:0}.item-title{font-size:14px;font-weight:650;line-height:1.45;overflow-wrap:anywhere}.item-meta{font-size:11px;color:var(--z-muted);margin-top:4px;line-height:1.5}.date{width:41px;min-height:43px;flex:none;text-align:center;background:var(--z-soft);border-radius:10px;padding:6px 2px;color:var(--z-accent)}.day{font-weight:750;font-size:19px;line-height:1.1}.month{font-size:9px;text-transform:uppercase;margin-top:2px}.chevron{--mdc-icon-size:16px;color:var(--z-muted);transition:transform .15s}.item[open] .chevron{transform:rotate(180deg)}.body{white-space:pre-wrap;font-size:13px;line-height:1.7;margin:13px 0 0;padding-top:13px;border-top:1px solid var(--divider-color,#e6edf0);overflow-wrap:anywhere}.kind{color:var(--z-accent)}.empty{text-align:center;padding:25px 12px 30px;color:var(--z-muted);font-size:13px;line-height:1.6}.empty ha-icon{--mdc-icon-size:30px;color:var(--z-accent);margin-bottom:10px}.empty strong{display:block;color:var(--primary-text-color);font-size:15px;margin-bottom:4px}.notice{font-size:12px;line-height:1.5;padding:12px;border-radius:10px;background:var(--z-soft);margin-bottom:10px;color:var(--z-muted)}footer{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--divider-color,#e6edf0);padding:14px 24px;font-size:11px;color:var(--z-muted);gap:10px}footer a{color:var(--z-accent);text-decoration:none;display:flex;gap:5px;align-items:center;font-weight:650}.more{color:var(--z-accent);width:100%;padding:9px;font-size:12px;font-weight:650}.error{color:var(--error-color,#b74931);font-size:12px;margin:10px 0}.syncing ha-icon{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}@media(max-width:390px){header{padding:19px 16px 16px}.stats{padding:0 16px;gap:7px}.stat{padding:12px 9px}.content{padding:0 16px 16px}nav{padding:18px 16px 12px}footer{padding:14px 16px}.tab{padding:8px}.number{font-size:23px}}
 .week-heading{font-size:13px;font-weight:650;color:var(--z-muted);margin:0 0 12px}.week-picker{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px;padding:12px 16px;border-top:1px solid var(--divider-color,#e6edf0)}.week-list{position:relative;display:flex;gap:6px;overflow:auto;scrollbar-width:thin;min-width:0}.week-chip{flex:none;padding:9px 12px;border-radius:10px;display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--z-muted)}.week-chip span{font-size:10px}.week-chip[aria-pressed=true]{background:var(--z-soft);color:var(--z-accent)}.week-chip.current strong::before{content:"• ";color:var(--z-accent)}.week-today{grid-column:1/-1;justify-self:center;font-size:12px;color:var(--z-accent);padding:6px}.week-today:disabled{cursor:default;opacity:.5}
+.timetable-day{margin-bottom:18px}.timetable-day h2{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:650;text-transform:capitalize;margin:0 0 9px;color:var(--z-muted)}.today-label{font-size:10px;font-weight:600;color:var(--z-accent);background:var(--z-soft);padding:3px 6px;border-radius:5px}.lesson{border:1px solid var(--divider-color,#e6edf0);border-radius:12px;padding:11px 12px;margin-bottom:7px}.lesson summary{display:flex;align-items:center;gap:12px;list-style:none;cursor:pointer}.lesson summary::-webkit-details-marker{display:none}.lesson-time{display:flex;flex-direction:column;gap:2px;min-width:51px;line-height:1.2;font-size:11px;color:var(--z-muted)}.lesson-time strong{color:var(--z-accent);font-weight:650}.lesson .copy{flex:1;min-width:0}.lesson-children{display:block;font-size:10px;color:var(--z-muted);margin-top:3px}.lesson[open] .chevron{transform:rotate(180deg)}.no-lessons{font-size:12px;color:var(--z-muted);margin:0;padding:5px 0}
 @container(max-width:390px){.tab{padding:9px 8px;font-size:12px}.child{font-size:12px;padding-right:10px}.children{gap:6px}.stat-label{font-size:11px}}
 `;
 class ZenbiCard extends HTMLElement {
@@ -312,8 +314,8 @@ class ZenbiCard extends HTMLElement {
         }))
       : Array.from(children.values());
     for (const child of resolvedChildren) {
-      const registryRow = (this._rows || []).find(row => row.entity_id === (child.weekly_plans || child.homework));
-      child.zenbi_id = registryRow?.unique_id?.match(/:(?:weekly_plans|homework):([^:]+)$/)?.[1] || child.id;
+      const registryRow = (this._rows || []).find(row => row.entity_id === (child.weekly_plans || child.homework || child.calendar));
+      child.zenbi_id = registryRow?.unique_id?.match(/:(?:weekly_plans|homework|child_calendar):([^:]+)$/)?.[1] || child.id;
       child.person = this._config.persons?.[child.id];
       child.picture = this._hass?.states[child.person]?.attributes.entity_picture ||
         this._hass?.states[child.homework]?.attributes.entity_picture ||
@@ -435,6 +437,7 @@ class ZenbiCard extends HTMLElement {
   }
   _content(active, all) {
     const kind = this._tab;
+    if (kind === "timetable") return this._timetableContent(active);
     let rows = [];
     let sources = [];
     if (kind === "weekly_plans") {
@@ -568,7 +571,7 @@ class ZenbiCard extends HTMLElement {
         ? homework + tasks
         : "—";
     const statCount = ["homework", "messages", "weekly_plans"].filter(id => topics.includes(id)).length;
-    const showChildren = topics.some(id => ["homework", "calendar", "weekly_plans"].includes(id));
+    const showChildren = topics.some(id => ["homework", "calendar", "weekly_plans", "timetable"].includes(id));
     const childButton = (c) =>
       `<button class="child ${this._selected === c.id ? "active" : ""}" data-child="${esc(c.id)}" title="${esc(c.full_name || c.name)}" aria-label="${esc(c.name)}" aria-pressed="${this._selected === c.id}"><span class="avatar">${c.picture ? `<img src="${esc(c.picture)}" alt="" loading="lazy">` : esc(
         c.id === "all"
@@ -589,7 +592,7 @@ class ZenbiCard extends HTMLElement {
       this._expanded.add(details.dataset.key);
     const positions = scrollPositions(this);
     const template = document.createElement("template");
-    template.innerHTML = `<style>${css}</style><ha-card><header><div class="top"><img class="logo" src="/zenbi-card/icon.png" alt="Zenbi"><div class="heading"><p class="eyebrow">Skole & hverdag</p><h1>${esc(this._config.title)}</h1></div>${all.update ? `<button class="refresh ${this._refreshing ? "syncing" : ""}" data-action="refresh" aria-label="Opdater Zenbi" ${this._refreshing || !this._state(all.update) || this._state(all.update).state === "unavailable" ? "disabled" : ""}>${icon("refresh")}</button>` : ""}</div><p class="sub"><span class="dot ${ok ? "" : "warn"}"></span>${ok ? "Opdateret" : status?.state === "delvis" ? "Nogle data mangler" : "Afventer data"}${stamp ? " kl. " + esc(stamp) : ""}</p>${showChildren && children.length ? `<div class="children" aria-label="Vælg barn">${[all, ...children].map(childButton).join("")}</div>` : ""}</header>${statCount ? `<div class="stats" style="--z-stat-count:${statCount}">${stat(count, "Lektier & opgaver", "book-open-page-variant", "homework")}${stat(this._count(all.unread), "Ulæste beskeder", "email-outline", "messages")}${stat(this._count(active.weekly_plans), "Ugeplaner", "view-week-outline", "weekly_plans")}</div>` : ""}<nav aria-label="Vis indhold">${tabList.map(([id, title, name]) => `<button class="tab ${this._tab === id ? "active" : ""}" data-tab="${id}" aria-pressed="${this._tab === id}">${icon(name)}${title}${id === "messages" && Number(this._count(all.unread)) > 0 ? `<span class="badge">${esc(this._count(all.unread))}</span>` : ""}</button>`).join("")}</nav><div class="content">${this._multipleEntries ? '<div class="notice">Flere Zenbi-konti er fundet. Vælg konto i kortets editor.</div>' : ""}${this._discoveryError ? '<div class="notice">Automatisk entitetsvalg fejlede. Vælg entiteter manuelt i YAML, eller genindlæs dashboardet.</div>' : ""}${this._actionError ? `<p class="error" role="alert">${esc(this._actionError)}</p>` : ""}<div class="section-title">${esc(this._tab === "calendar" ? "De næste 7 dage" : ["messages", "posts"].includes(this._tab) ? "Fælles for kontoen" : active.id === "all" ? "Alle børn" : active.name)}</div>${this._tab === "weekly_plans" ? `<p class="week-heading">${esc(this._weekLabel(this._week))}</p>` : ""}${this._content(active, all)}</div>${this._tab === "weekly_plans" ? this._weekPicker() : ""}<footer><span>${this._tab === "messages" ? "Seneste hentede side · op til 50 beskeder" : "Zenbi · familiens skoleoverblik"}</span><a href="https://app.zenbi.dk/home" target="_blank" rel="noopener noreferrer">Åbn Zenbi ${icon("arrow-top-right")}</a></footer></ha-card>`;
+    template.innerHTML = `<style>${css}</style><ha-card><header><div class="top"><img class="logo" src="/zenbi-card/icon.png" alt="Zenbi"><div class="heading"><p class="eyebrow">Skole & hverdag</p><h1>${esc(this._config.title)}</h1></div>${all.update ? `<button class="refresh ${this._refreshing ? "syncing" : ""}" data-action="refresh" aria-label="Opdater Zenbi" ${this._refreshing || !this._state(all.update) || this._state(all.update).state === "unavailable" ? "disabled" : ""}>${icon("refresh")}</button>` : ""}</div><p class="sub"><span class="dot ${ok ? "" : "warn"}"></span>${ok ? "Opdateret" : status?.state === "delvis" ? "Nogle data mangler" : "Afventer data"}${stamp ? " kl. " + esc(stamp) : ""}</p>${showChildren && children.length ? `<div class="children" aria-label="Vælg barn">${[all, ...children].map(childButton).join("")}</div>` : ""}</header>${statCount ? `<div class="stats" style="--z-stat-count:${statCount}">${stat(count, "Lektier & opgaver", "book-open-page-variant", "homework")}${stat(this._count(all.unread), "Ulæste beskeder", "email-outline", "messages")}${stat(this._count(active.weekly_plans), "Ugeplaner", "view-week-outline", "weekly_plans")}</div>` : ""}<nav aria-label="Vis indhold">${tabList.map(([id, title, name]) => `<button class="tab ${this._tab === id ? "active" : ""}" data-tab="${id}" aria-pressed="${this._tab === id}">${icon(name)}${title}${id === "messages" && Number(this._count(all.unread)) > 0 ? `<span class="badge">${esc(this._count(all.unread))}</span>` : ""}</button>`).join("")}</nav><div class="content">${this._multipleEntries ? '<div class="notice">Flere Zenbi-konti er fundet. Vælg konto i kortets editor.</div>' : ""}${this._discoveryError ? '<div class="notice">Automatisk entitetsvalg fejlede. Vælg entiteter manuelt i YAML, eller genindlæs dashboardet.</div>' : ""}${this._actionError ? `<p class="error" role="alert">${esc(this._actionError)}</p>` : ""}<div class="section-title">${esc(this._tab === "calendar" ? "De næste 7 dage" : ["messages", "posts"].includes(this._tab) ? "Fælles for kontoen" : active.id === "all" ? "Alle børn" : active.name)}</div>${["weekly_plans", "timetable"].includes(this._tab) ? `<p class="week-heading">${esc(this._weekLabel(this._week))}</p>` : ""}${this._content(active, all)}</div>${["weekly_plans", "timetable"].includes(this._tab) ? this._weekPicker() : ""}<footer><span>${this._tab === "messages" ? "Seneste hentede side · op til 50 beskeder" : "Zenbi · familiens skoleoverblik"}</span><a href="https://app.zenbi.dk/home" target="_blank" rel="noopener noreferrer">Åbn Zenbi ${icon("arrow-top-right")}</a></footer></ha-card>`;
     patchChildren(this.shadowRoot, template.content);
     const weekList = this.shadowRoot.querySelector(".week-list");
     if (weekList && (this._weekScrollNode !== weekList || this._weekScrollDate !== this._week)) {
@@ -607,6 +610,36 @@ class ZenbiCard extends HTMLElement {
       if (node) node.scrollLeft = left;
     }
   }
+  _timetableContent(active) {
+    if (this._weeklyError) return this._empty("Skoleskemaet kunne ikke hentes", "Prøv Opdater, eller kontrollér barnets kalender og kortets Zenbi-konto.", "calendar-alert");
+    if (this._weeklyLoading || !this._weeklyData) return this._empty("Henter skoleskema…", "Timer og aktiviteter for den valgte uge.", "timetable");
+    const rows = this._weeklyData.items.filter(row => active.id === "all" || row.children.includes(active.zenbi_id || active.id));
+    const notice = (this._weeklyData.unmapped ? '<div class="notice">Nogle skemapunkter kunne ikke knyttes til børnene.</div>' : "") +
+      (this._weeklyData.clipped ? '<div class="notice">Skemaet er afkortet. Se alle punkter i Zenbi.</div>' : "");
+    if (!rows.length) return notice + this._empty("Intet skoleskema denne uge", "Der er ingen skemapunkter for det valgte barn i den hentede uge.", "timetable");
+    const zone = this._hass.config?.time_zone;
+    const today = dateInZone(zone);
+    const dayOf = value => /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : dateInZone(zone, new Date(value));
+    const clock = value => new Date(value).toLocaleTimeString("da-DK", {hour:"2-digit",minute:"2-digit",timeZone:zone}).replace(".", ":");
+    const {children} = this._view();
+    return notice + Array.from({length:7}, (_, index) => {
+      const day = addDays(this._week, index);
+      const nextDay = addDays(day, 1);
+      const events = rows.filter(row => row.all_day
+        ? row.date <= day && row.end > day
+        : dayOf(row.date) === day || (dayOf(row.date) < day && (dayOf(row.end) > day || (dayOf(row.end) === day && clock(row.end) !== "00:00"))));
+      if (index >= 5 && !events.length) return "";
+      events.sort((a,b) => String(a.date).localeCompare(String(b.date)));
+      const heading = new Date(day + "T12:00:00Z").toLocaleDateString("da-DK", {weekday:"long",day:"numeric",month:"short",timeZone:"UTC"});
+      return `<section class="timetable-day"><h2>${esc(heading)}${day === today ? '<span class="today-label">I dag</span>' : ""}</h2>${events.length ? events.map(row => {
+        const key = `timetable:${row.id}:${day}`;
+        const names = active.id === "all" ? children.filter(child => row.children.includes(child.zenbi_id || child.id)).map(child => child.name).join(" · ") : "";
+        const start = row.all_day ? "Hele dagen" : dayOf(row.date) < day ? "00:00" : clock(row.date);
+        const end = row.all_day ? "" : dayOf(row.end) >= nextDay ? "24:00" : clock(row.end);
+        return `<details class="lesson" data-key="${esc(key)}" ${this._expanded.has(key) ? "open" : ""}><summary><span class="lesson-time"><strong>${esc(start)}</strong>${end ? `<span>${esc(end)}</span>` : ""}</span><span class="copy"><span class="item-title">${esc(row.title)}</span>${names ? `<span class="lesson-children">${esc(names)}</span>` : ""}</span>${row.text ? '<ha-icon class="chevron" icon="mdi:chevron-down"></ha-icon>' : ""}</summary>${row.text ? `<div class="body">${esc(row.text)}</div>` : ""}</details>`;
+      }).join("") : '<p class="no-lessons">Ingen skemapunkter</p>'}</section>`;
+    }).join("");
+  }
   _weekLabel(value) {
     const week = isoWeek(value);
     return `Uge ${week.number} · ${this._date(value)}–${this._date(addDays(value, 6))} ${week.year}`;
@@ -621,9 +654,10 @@ class ZenbiCard extends HTMLElement {
     return `<div class="week-picker" aria-label="Vælg uge"><button data-week="${addDays(this._week,-7)}" data-action="week-prev" aria-label="Forrige uge"><ha-icon icon="mdi:chevron-left"></ha-icon></button><div class="week-list">${chips}</div><button data-week="${addDays(this._week,7)}" data-action="week-next" aria-label="Næste uge"><ha-icon icon="mdi:chevron-right"></ha-icon></button><button class="week-today" data-week="${today}" ${this._week === today ? "disabled" : ""}>Denne uge</button></div>`;
   }
   async _loadWeek(force = false) {
-    if (!this._hass || !this._config || this._tab !== "weekly_plans" || !this._entryLoaded) return;
+    if (!this._hass || !this._config || !["weekly_plans", "timetable"].includes(this._tab) || !this._entryLoaded) return;
     const entry = this._config.config_entry || this._resolvedEntry;
-    const key = `${entry}:${this._week}`;
+    const kind = this._tab;
+    const key = `${kind}:${entry}:${this._week}`;
     if (!force && key === this._weeklyKey && (this._weeklyLoading || Date.now() - (this._weeklyFetched || 0) < 300000)) return;
     const generation = ++this._weeklyGeneration;
     this._weeklyKey = key;
@@ -633,7 +667,7 @@ class ZenbiCard extends HTMLElement {
     this._render();
     try {
       if (!entry) throw new Error("Missing entry");
-      const result = await this._hass.callWS({type:"zenbi/weekly_plans", config_entry_id:entry, week:this._week});
+      const result = await this._hass.callWS({type:`zenbi/${kind}`, config_entry_id:entry, week:this._week});
       if (!Array.isArray(result?.items) || result.week !== this._week) throw new Error("Invalid response");
       if (generation === this._weeklyGeneration) this._weeklyData = result;
     } catch {

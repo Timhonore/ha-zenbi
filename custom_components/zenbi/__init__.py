@@ -10,7 +10,7 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from .api import AuthenticationError, ZenbiClient
 from .const import CONF_DEVICE_ID, DOMAIN
 from .coordinator import ZenbiCoordinator
-from .websocket import ws_weekly_plans
+from .websocket import ws_timetable, ws_weekly_plans
 
 PLATFORMS = [Platform.SENSOR, Platform.CALENDAR, Platform.BUTTON]
 
@@ -23,6 +23,7 @@ async def async_setup(hass, config):
         StaticPathConfig("/zenbi-card/icon.png", str(root / "brand" / "icon.png"), True),
     ])
     websocket_api.async_register_command(hass, ws_weekly_plans)
+    websocket_api.async_register_command(hass, ws_timetable)
     return True
 
 

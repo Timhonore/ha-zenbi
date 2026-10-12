@@ -136,6 +136,28 @@ class CoordinatorTest(unittest.IsolatedAsyncioTestCase):
             await self.coordinator.async_weekly_plans(date(2026,12,28))
         self.assertFalse(self.coordinator._weekly_cache)
 
+    async def test_timetable_recurrence_privacy_and_child_mapping(self):
+        self.client.sources["child_calendar"] = [
+            {"id":"lesson","title":"Dansk", "description":"Læs sammen", "participantModels":[{"participantId":GROUP}],
+             "repetition":{"frequency":2,"dayFlags":5,"startDate":"2026-10-12T08:00:00+02:00", "minuteLength":45}},
+            {"id":"private","title":"Private title","description":"Secret", "private":True,
+             "start":"2026-10-13T09:00:00+02:00","end":"2026-10-13T10:00:00+02:00", "participantModels":[{"participantId":CHILD}]},
+            {"id":"other","title":"Other child","start":"2026-10-12T09:00:00+02:00","end":"2026-10-12T10:00:00+02:00", "participantModels":[{"participantId":OTHER}]}]
+        result = await self.coordinator.async_timetable(date(2026,10,12))
+        self.assertEqual(len(result["items"]),3)
+        self.assertEqual([row["date"][:10] for row in result["items"] if row["title"]=="Dansk"],["2026-10-12","2026-10-14"])
+        self.assertTrue(all(row["children"]==[CHILD] for row in result["items"]))
+        private = next(row for row in result["items"] if row["title"]=="Privat begivenhed")
+        self.assertEqual(private["text"], "")
+        self.assertNotIn("Secret",str(result))
+        self.assertEqual(result["unmapped"],1)
+
+    async def test_timetable_errors_are_not_empty_weeks(self):
+        self.client.failures["child_calendar"] = api.PermissionError("denied")
+        with self.assertRaises(api.PermissionError):
+            await self.coordinator.async_timetable(date(2026,10,12))
+        self.assertFalse(self.coordinator._timetable_cache)
+
     async def test_permission_failure_does_not_become_zero(self):
         self.client.failures["homework"] = api.PermissionError("denied")
         await self.update()
