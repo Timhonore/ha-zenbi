@@ -154,7 +154,12 @@ const root = path.resolve(__dirname, "..");
       connection: {},
       states,
       config: { time_zone: "Europe/Copenhagen" },
-      callWS: async () => rows,
+      callWS: async request => {
+        if (request.type !== "zenbi/weekly_plans") return rows;
+        window.weekCalls ||= [];
+        weekCalls.push(request);
+        return {week:request.week,items:[{...plan,date:request.week,children:["freja","oscar"]}],unmapped:0,clipped:false};
+      },
       callService: async (...args) => {
         calls.push(args);
       },
@@ -294,6 +299,32 @@ const root = path.resolve(__dirname, "..");
     "API text never renders HTML",
   );
   assert.equal(await page.evaluate(() => window.injected), undefined);
+  // Week switching crosses ISO years and fetches data outside the sensor range.
+  await card.locator("nav button[data-tab=weekly_plans]").click();
+  await card.getByText("Ugeplan", {exact:true}).last().waitFor();
+  await page.evaluate(() => {card._week="2026-12-28";card._render();card._loadWeek();});
+  await card.locator('.week-chip[aria-pressed=true]').getByText("Uge 53", {exact:true}).waitFor();
+  await card.getByRole("button", {name:"Næste uge",exact:true}).click();
+  await card.locator('.week-chip[aria-pressed=true]').getByText("Uge 1", {exact:true}).waitFor();
+  assert.equal(await page.evaluate(() => weekCalls.at(-1).week), "2027-01-04");
+  await card.getByRole("button", {name:"Forrige uge",exact:true}).click();
+  await card.locator('.week-chip[aria-pressed=true]').getByText("Uge 53", {exact:true}).waitFor();
+  await card.getByRole("button", {name:"Denne uge",exact:true}).click();
+  // A late week response must not replace the currently selected week.
+  await page.evaluate(() => {
+    window.originalWS = hass.callWS;
+    card._hass = {...hass,callWS: request => request.week === "2026-12-28"
+      ? new Promise(resolve => window.resolveOldWeek = resolve)
+      : originalWS(request)};
+    card._week="2026-12-28";card._render();card._loadWeek(true);
+  });
+  await card.getByRole("button", {name:"Næste uge",exact:true}).click();
+  await page.evaluate(() => resolveOldWeek({week:"2026-12-28",items:[{id:"old",title:"Gammel uge",children:["oscar"]}]}));
+  assert.equal(await card.getByText("Gammel uge", {exact:true}).count(), 0);
+  assert.equal(await page.evaluate(() => card._weeklyData.week), "2027-01-04");
+  await page.evaluate(() => {card._hass=hass;});
+  await card.getByRole("button", {name:"Denne uge",exact:true}).click();
+  await card.locator("nav button[data-tab=homework]").click();
   // Editor sends a valid config-changed event.
   await page.evaluate(() => {
     const editor = customElements.get("zenbi-card").getConfigElement();

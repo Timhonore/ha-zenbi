@@ -4,8 +4,8 @@
 
 [![Validate](https://github.com/Timhonore/ha-zenbi/actions/workflows/validate.yml/badge.svg)](https://github.com/Timhonore/ha-zenbi/actions/workflows/validate.yml)
 
-**Udgivelse v.1.0.4 — uofficiel integration.**
-HA, diagnostik og card bruger det interne versionsnummer `1.0.4`.
+**Udgivelse v.1.1 — uofficiel integration.**
+HA, diagnostik og card bruger det interne versionsnummer `1.1.0`.
 
 Henter lektier, opgaver, ugeplaner, kalender, beskeder og opslag fra den konto,
 du selv har adgang til på `app.zenbi.dk`. Installeres gennem HACS som et custom
@@ -21,6 +21,14 @@ repository: **https://github.com/Timhonore/ha-zenbi**.
 
 Zenbis officielle appikon er inkluderet. Lokale brandikoner vises i Home
 Assistant fra version 2026.3; tidligere versioner kan vise standardikon.
+
+## Nyt i 1.1.0
+
+- Ugevælger nederst på ugeplansfanen med ugenumre, forrige/næste uge og **Denne uge**.
+- Valgte uger hentes direkte via integrationen, også uden for sensorernes periode.
+- Børnevalg filtrerer den valgte uges planer. ISO-uger håndteres ved årsskiftet.
+- Kortet viser hentefejl separat fra tomme uger. Forsinkede svar kan ikke erstatte
+  en nyere valgt uge. HA's rettigheder til børnenes ugeplansensorer håndhæves.
 
 ## Nyt i 1.0.4
 
@@ -119,10 +127,10 @@ fra HA's entitetsregister; du behøver ikke kende deres entity-id'er.
 
 **Installér kortet:**
 
-1. Opdater Zenbi til **1.0.4** i HACS og genstart HA.
+1. Opdater Zenbi til **1.1.0** i HACS og genstart HA.
 2. Aktivér avanceret tilstand på din HA-profil, hvis Ressourcer ikke vises.
 3. Åbn **Indstillinger → Dashboards → ⋮ → Ressourcer** og tilføj
-   `/zenbi-card/zenbi-card.js?v=1.0.4` som **JavaScript Module**.
+   `/zenbi-card/zenbi-card.js` som **JavaScript Module**.
 4. Genindlæs dashboardet. Tilføj kortet **Zenbi · Skoleoverblik**, eller
    indsæt YAML nedenfor som et manuelt kort.
 
@@ -143,6 +151,11 @@ Vælg emner under **Emner på kortet** i den visuelle editor. I YAML kan fx
 vises alle emner. Ældre `show_posts: false` virker stadig, når `topics` ikke er sat.
 Valget påvirker kun dette kort; integrationens sensorer og kalendere fortsætter.
 
+På ugeplansfanen vælger du uge i rækken nederst eller med pilene.
+**Denne uge** går tilbage til den aktuelle uge i HA's tidszone. Hentede uger
+caches i op til fem minutter. **Opdater Zenbi** henter igen. Sensorernes
+normale periode og tællere ændres ikke, når du bladrer i kortet.
+
 Under **Børnenes profilbilleder** kan du vælge en eksisterende HA-person,
 fx `person.ellen`, til hvert Zenbi-barn. Cardet bruger personens `entity_picture`
 som alternativ til Zenbis profilbillede og viser klassen fra Zenbis metadata.
@@ -154,8 +167,8 @@ I YAML er `persons` en map fra Zenbis barn-id til HA-personens entity-id.
 
 Card-filen følger med integrationens HACS-download. Den kræver en opsat Zenbi-
 integration for at kunne vises på `/zenbi-card/`. Resource tilføjes én gang;
-ved kommende opdateringer skal versionsparameteren ændres for at undgå gammel
-browsercache. Kortet kan konfigureres i den visuelle editor (titel, konto,
+efter opdatering skal HA genstartes og dashboardsiden genindlæses.
+URL'en behøver ikke et versionsnummer; JavaScript-filen har ikke langtids-cache. Kortet kan konfigureres i den visuelle editor (titel, konto,
 antal rækker og valg af emner). Har du flere Zenbi-konti, vælg konto i editoren.
 For YAML-dashboards tilføjes URL'en under Lovelaces `resources` med `type: module`.
 
@@ -202,7 +215,7 @@ Screenshots viser demodata. Kortet skal stadig prøves med din faktiske HA-insta
 - API-ruter, HTTP-metoder, loginfelter, tokenfornyelse, samlinger, tilknytning
   via grupper og kalendergentagelser er kortlagt fra offentlig JavaScript
   leveret af webappen den 11. oktober 2026.
-- 26 automatiske tests med kunstige data er bestået: tokenfornyelse, HTTP-fejl,
+- 32 automatiske tests med kunstige data er bestået: tokenfornyelse, HTTP-fejl,
   gruppefiltrering, tekstkonvertering, gentagelser, flytninger, sommertid og
   delvise kildefejl.
 - Python-filer er syntakskontrolleret.

@@ -4,7 +4,7 @@ These are not full Home Assistant runtime tests.
 """
 import asyncio
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 import importlib
 import sys
 import types
@@ -105,6 +105,36 @@ class CoordinatorTest(unittest.IsolatedAsyncioTestCase):
 
     async def update(self):
         self.coordinator.data = await self.coordinator._async_update_data()
+
+    async def test_on_demand_week_range_cache_and_sensor_isolation(self):
+        await self.update()
+        previous = self.coordinator.data
+        self.client.sources["weekly_plans"] = [
+            {"id":"selected","title":"Nytår", "start":"2026-12-28", "end":"2027-01-04", "participantIds":[GROUP]},
+            {"id":"previous","start":"2026-12-21", "end":"2026-12-28", "participantIds":[GROUP]},
+            {"id":"other","start":"2026-12-28", "participantIds":[OTHER]}]
+        calls = []
+        original = self.client.source
+        async def source(kind, start, end):
+            calls.append((kind,start,end))
+            return await original(kind,start,end)
+        self.client.source = source
+        result = await self.coordinator.async_weekly_plans(date(2026,12,28))
+        self.assertEqual([row["id"] for row in result["items"]], ["selected"])
+        self.assertEqual(result["unmapped"], 1)
+        self.assertIs(previous, self.coordinator.data)
+        self.assertEqual(calls[0][1].isoformat(), "2026-12-28T00:00:00+01:00")
+        self.assertEqual(calls[0][2].isoformat(), "2027-01-04T00:00:00+01:00")
+        await self.coordinator.async_weekly_plans(date(2026,12,28))
+        self.assertEqual(len(calls), 1)
+        with self.assertRaises(ValueError):
+            await self.coordinator.async_weekly_plans(date(2026,12,29))
+
+    async def test_on_demand_week_failure_is_not_an_empty_plan(self):
+        self.client.failures["weekly_plans"] = api.PermissionError("denied")
+        with self.assertRaises(api.PermissionError):
+            await self.coordinator.async_weekly_plans(date(2026,12,28))
+        self.assertFalse(self.coordinator._weekly_cache)
 
     async def test_permission_failure_does_not_become_zero(self):
         self.client.failures["homework"] = api.PermissionError("denied")

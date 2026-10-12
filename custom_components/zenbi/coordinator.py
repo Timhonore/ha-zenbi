@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import timedelta
+from datetime import datetime, time, timedelta
+from time import monotonic
+from zoneinfo import ZoneInfo
 import logging
 
 from homeassistant.exceptions import ConfigEntryAuthFailed
@@ -23,6 +25,8 @@ class ZenbiCoordinator(DataUpdateCoordinator):
         self.entry = entry
         self.options_snapshot = dict(entry.options)
         self.client = client
+        self._weekly_cache = {}
+        self._weekly_lock = asyncio.Lock()
         self.children = {}
         self.groups = {}
         self.school = entry.data.get("school", "Zenbi")
@@ -130,7 +134,42 @@ class ZenbiCoordinator(DataUpdateCoordinator):
             data["unread_count"] = len(raw["unread"])
         if not any(v == "ok" for v in status.values()):
             raise UpdateFailed("Ingen Zenbi-datakilder kunne hentes")
+        self._weekly_cache.clear()
         return data
+
+    async def async_weekly_plans(self, week):
+        """Query a selected week without changing the polling period or sensor counts."""
+        if week.weekday() != 0:
+            raise ValueError("Week must start on Monday")
+        key = week.isoformat()
+        async with self._weekly_lock:
+            cached = self._weekly_cache.get(key)
+            if cached and monotonic() - cached[0] < 300:
+                return cached[1]
+            zone = self.hass.config.time_zone
+            start = datetime.combine(week, time.min, ZoneInfo(zone))
+            end = start + timedelta(days=7)
+            source = await self.client.source("weekly_plans", start, end)
+            result = []
+            unmapped = 0
+            for row in source:
+                child_ids = children_for(row, self.children, self.groups)
+                if not child_ids:
+                    unmapped += 1
+                    continue
+                normalized = item(row, "weekly_plans", child_ids)
+                row_start = parse_dt(normalized["date"], zone)
+                row_end = parse_dt(normalized["end"], zone) if normalized["end"] else row_start + timedelta(days=1)
+                if row_end <= row_start:
+                    row_end = row_start + timedelta(days=1)
+                if row_start < end and row_end > start:
+                    result.append({**normalized, "text": normalized["text"][:4000]})
+            result.sort(key=lambda row: row["date"])
+            value = {"week": key, "items": result[:50], "clipped": len(result) > 50, "unmapped": unmapped}
+            if len(self._weekly_cache) >= 16:
+                self._weekly_cache.pop(next(iter(self._weekly_cache)))
+            self._weekly_cache[key] = (monotonic(), value)
+            return value
 
     def items(self, kind, child_id=None):
         result = self.data["items"].get(kind, [])

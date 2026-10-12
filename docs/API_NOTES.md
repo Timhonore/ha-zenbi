@@ -88,3 +88,11 @@ med `/small` gav den 200 og `image/jpeg`. Ingen billeder eller person-id'er er
 gemt i repositoryet. Klassens UUID kan være et valg-id: GET
 `/api/authentication/api/v1/globaldata/personfields` returnerer
 `userDefinedPersonFields` med `personFieldModelItems` (`id`, `name`).
+
+## Valgt uge fra cardet (v1.1.0)
+
+HA WebSocket-kommandoen `zenbi/weekly_plans` modtager en Zenbi-config-entry
+og mandagens ISO-dato. Den henter syv dage fra `weeklyschedules/relations`
+i HA's tidszone, knytter rækker til de konfigurerede børn og returnerer højst
+50 normaliserede planer. Adgang til de tilhørende ugeplansensorer kontrolleres
+med HA's læserettigheder. Sensorpoll og periodetællere ændres ikke.

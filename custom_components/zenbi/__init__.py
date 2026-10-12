@@ -2,6 +2,7 @@
 from pathlib import Path
 
 from homeassistant.const import Platform
+from homeassistant.components import websocket_api
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.exceptions import ConfigEntryAuthFailed
@@ -9,6 +10,7 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from .api import AuthenticationError, ZenbiClient
 from .const import CONF_DEVICE_ID, DOMAIN
 from .coordinator import ZenbiCoordinator
+from .websocket import ws_weekly_plans
 
 PLATFORMS = [Platform.SENSOR, Platform.CALENDAR, Platform.BUTTON]
 
@@ -20,6 +22,7 @@ async def async_setup(hass, config):
         StaticPathConfig("/zenbi-card/zenbi-card.js", str(root / "frontend" / "zenbi-card.js"), False),
         StaticPathConfig("/zenbi-card/icon.png", str(root / "brand" / "icon.png"), True),
     ])
+    websocket_api.async_register_command(hass, ws_weekly_plans)
     return True
 
 
