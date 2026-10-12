@@ -188,6 +188,39 @@ class ApiTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(session.calls), 1)
         self.assertEqual(saved[0]["refreshToken"], "rotated")
 
+    async def test_refresh_before_expiry_with_authenticated_request(self):
+        old = token(exp=datetime.now(timezone.utc).timestamp() + 1800)
+        session = Session([(200, {"token": token(marker="new"), "refreshToken": "rotated"}), (200, [])])
+        saved = []
+        client = api.ZenbiClient(session, tokens={"token": old, "refreshToken": "old-refresh"}, on_tokens=saved.append)
+        self.assertEqual(await client.get("/api/test"), [])
+        method, url, kwargs = session.calls[0]
+        self.assertEqual(method, "POST")
+        self.assertTrue(url.endswith("/account/refresh-token"))
+        self.assertEqual(kwargs["headers"]["Authorization"], f"Bearer {old}")
+        self.assertEqual(kwargs["json"], {"token": old, "refreshToken": "old-refresh"})
+        restarted = api.ZenbiClient(Session([(200, [])]), tokens=saved[0])
+        await restarted.get("/api/test")
+        self.assertEqual(len(restarted.session.calls), 1)
+
+    async def test_long_poll_interval_refreshes_before_next_poll(self):
+        session = Session([(200, {"token": token(exp=datetime.now(timezone.utc).timestamp() + 86400), "refreshToken": "rotated"})])
+        client = api.ZenbiClient(session, tokens={"token": token(), "refreshToken": "old"}, refresh_before=7500)
+        await client.ensure_token()
+        self.assertEqual(len(session.calls), 1)
+
+    async def test_transient_refresh_error_keeps_saved_tokens(self):
+        original = {"token": token(exp=1), "refreshToken": "old"}
+        session = Session([(503, {}), (200, {"token": token(), "refreshToken": "new"})])
+        saved = []
+        client = api.ZenbiClient(session, tokens=dict(original), on_tokens=saved.append)
+        with self.assertRaises(api.ZenbiError):
+            await client.ensure_token()
+        self.assertEqual(client.tokens, original)
+        self.assertEqual(saved, [])
+        await client.ensure_token()
+        self.assertEqual(saved[0]["refreshToken"], "new")
+
     async def test_401_refresh_and_retry(self):
         session = Session([(401, {}), (200, {"token": token(marker="new"), "refreshToken": "rotated"}), (200, [])])
         client = api.ZenbiClient(session, tokens={"token": token(), "refreshToken": "old"})

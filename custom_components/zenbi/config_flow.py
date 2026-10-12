@@ -31,8 +31,18 @@ class ZenbiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_reconfigure(self, user_input=None):
         entry = self._get_reconfigure_entry()
-        self.client = ZenbiClient(async_get_clientsession(self.hass), entry.data[CONF_DEVICE_ID],
-                                  {k: entry.data[k] for k in ("token", "refreshToken")})
+        # Share the running client's lock and persisted rotating tokens.
+        # A separate client can consume a refresh token still used by polling.
+        coordinator = getattr(entry, "runtime_data", None)
+        if coordinator is not None:
+            self.client = coordinator.client
+        else:
+            def save_tokens(tokens):
+                self.hass.config_entries.async_update_entry(entry, data={**entry.data, **tokens})
+
+            self.client = ZenbiClient(
+                async_get_clientsession(self.hass), entry.data[CONF_DEVICE_ID],
+                {k: entry.data[k] for k in ("token", "refreshToken")}, save_tokens)
         try:
             self._children, _, self._school = await self.client.discover()
         except AuthenticationError:
@@ -105,7 +115,7 @@ class ZenbiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             if self.source == config_entries.SOURCE_RECONFIGURE:
                 return self.async_update_reload_and_abort(self._get_reconfigure_entry(), data_updates={
-                    **self.client.tokens, CONF_CHILDREN: user_input[CONF_CHILDREN]})
+                    CONF_CHILDREN: user_input[CONF_CHILDREN]})
             return self.async_create_entry(title=f"Zenbi · {self._school}", data={
                 **self.client.tokens, CONF_DEVICE_ID: self.client.device_id,
                 CONF_ORGANIZATION_ID: guid(self.client.token_claims["org"]),

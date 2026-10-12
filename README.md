@@ -4,8 +4,8 @@
 
 [![Validate](https://github.com/Timhonore/ha-zenbi/actions/workflows/validate.yml/badge.svg)](https://github.com/Timhonore/ha-zenbi/actions/workflows/validate.yml)
 
-**Udgivelse v.1.2.1 — uofficiel integration.**
-HA, diagnostik og card bruger det interne versionsnummer `1.2.1`.
+**Udgivelse v.1.2.2 — uofficiel integration.**
+HA, diagnostik og card bruger det interne versionsnummer `1.2.2`.
 
 Henter lektier, opgaver, ugeplaner, kalender, beskeder og opslag fra den konto,
 du selv har adgang til på `app.zenbi.dk`. Installeres gennem HACS som et custom
@@ -21,6 +21,14 @@ repository: **https://github.com/Timhonore/ha-zenbi**.
 
 Zenbis officielle appikon er inkluderet. Lokale brandikoner vises i Home
 Assistant fra version 2026.3; tidligere versioner kan vise standardikon.
+
+## Nyt i 1.2.2
+
+- Automatisk tokenfornyelse matcher nu Zenbis app: godkendt refresh-request
+  og fornyelse mindst en time før udløb, med ekstra margen ved langsom polling.
+- Valg af børn deler tokenfornyelse med den kørende integration.
+- Opdater i HACS og genstart HA. Hvis Zenbi allerede har afvist din session,
+  skal du logge ind én gang igen.
 
 ## Nyt i 1.2.1
 
@@ -145,7 +153,7 @@ fra HA's entitetsregister; du behøver ikke kende deres entity-id'er.
 
 **Installér kortet:**
 
-1. Opdater Zenbi til **1.2.1** i HACS og genstart HA.
+1. Opdater Zenbi til **1.2.2** i HACS og genstart HA.
 2. Aktivér avanceret tilstand på din HA-profil, hvis Ressourcer ikke vises.
 3. Åbn **Indstillinger → Dashboards → ⋮ → Ressourcer** og tilføj
    `/zenbi-card/zenbi-card.js` som **JavaScript Module**.
@@ -262,7 +270,7 @@ brugerens HA. Kilde: [HA kalenderhandlinger](https://www.home-assistant.io/integ
 - API-ruter, HTTP-metoder, loginfelter, tokenfornyelse, samlinger, tilknytning
   via grupper og kalendergentagelser er kortlagt fra offentlig JavaScript
   leveret af webappen den 11. oktober 2026.
-- 36 automatiske tests med kunstige data er bestået: tokenfornyelse, HTTP-fejl,
+- 39 automatiske tests med kunstige data er bestået: tokenfornyelse, HTTP-fejl,
   gruppefiltrering, tekstkonvertering, gentagelser, flytninger, sommertid og
   delvise kildefejl.
 - Python-filer er syntakskontrolleret.

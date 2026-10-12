@@ -36,11 +36,13 @@ class LoginChallenge(ZenbiError):
 
 class ZenbiClient:
     def __init__(self, session: aiohttp.ClientSession, device_id: str | None = None,
-                 tokens: dict | None = None, on_tokens: Callable | None = None):
+                 tokens: dict | None = None, on_tokens: Callable | None = None,
+                 refresh_before: int = 3600):
         self.session = session
         self.device_id = device_id or str(uuid4())
         self.tokens = tokens or {}
         self.on_tokens = on_tokens
+        self.refresh_before = max(3600, refresh_before)
         self._lock = asyncio.Lock()
 
     @property
@@ -111,9 +113,12 @@ class ZenbiClient:
             if not self.tokens.get("token") or not self.tokens.get("refreshToken"):
                 raise AuthenticationError("Login required")
             expiry = self.token_claims.get("exp", 0)
-            if not force and expiry > datetime.now(timezone.utc).timestamp() + 300:
+            if not force and expiry > datetime.now(timezone.utc).timestamp() + self.refresh_before:
                 return
-            response = await self._request(AUTH_PATH + "refresh-token", method="POST", body=self.tokens)
+            # Match the web app: renew while the access token is still valid,
+            # and authenticate the refresh request with that token as well.
+            response = await self._request(AUTH_PATH + "refresh-token", method="POST",
+                                           body=dict(self.tokens), token=self.tokens["token"])
             try:
                 self.accept_login(response)
             except LoginChallenge as err:

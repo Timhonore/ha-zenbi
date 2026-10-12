@@ -25,6 +25,10 @@ class ZenbiCoordinator(DataUpdateCoordinator):
         self.entry = entry
         self.options_snapshot = dict(entry.options)
         self.client = client
+        # Even a two-hour polling interval must renew before the next poll
+        # crosses expiry. Zenbi's app normally renews one hour beforehand.
+        self.client.refresh_before = max(
+            3600, int(self.update_interval.total_seconds()) + 300)
         self._weekly_cache = {}
         self._timetable_cache = {}
         self._weekly_lock = asyncio.Lock()
