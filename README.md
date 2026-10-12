@@ -4,7 +4,7 @@
 
 [![Validate](https://github.com/Timhonore/ha-zenbi/actions/workflows/validate.yml/badge.svg)](https://github.com/Timhonore/ha-zenbi/actions/workflows/validate.yml)
 
-**Version 0.1.0-beta.4 — uofficiel integration og første testversion.**
+**Version 1.0.0 — uofficiel integration.**
 
 Henter lektier, opgaver, ugeplaner, kalender, beskeder og opslag fra den konto,
 du selv har adgang til på `app.zenbi.dk`. Installeres gennem HACS som et custom
@@ -20,6 +20,13 @@ repository: **https://github.com/Timhonore/ha-zenbi**.
 
 Zenbis officielle appikon er inkluderet. Lokale brandikoner vises i Home
 Assistant fra version 2026.3; tidligere versioner kan vise standardikon.
+
+## Nyt i 1.0.0
+
+- Fanerne er igen én kompakt række med vandret scroll, også på mobil.
+- Ugeplaner uden en titel hedder nu **Ugeplan**. Cardet oversætter også den
+  gamle fallback `weekly_plans`, så rettelsen vises med allerede hentede data.
+- Integration og card bruger versionsnummer **1.0.0**.
 
 ## Rettelser i beta.4
 
@@ -73,10 +80,10 @@ fra HA's entitetsregister; du behøver ikke kende deres entity-id'er.
 
 **Installér kortet:**
 
-1. Opdater Zenbi til **0.1.0-beta.4** i HACS og genstart HA.
+1. Opdater Zenbi til **1.0.0** i HACS og genstart HA.
 2. Aktivér avanceret tilstand på din HA-profil, hvis Ressourcer ikke vises.
 3. Åbn **Indstillinger → Dashboards → ⋮ → Ressourcer** og tilføj
-   `/zenbi-card/zenbi-card.js?v=0.1.0-beta.4` som **JavaScript Module**.
+   `/zenbi-card/zenbi-card.js?v=1.0.0` som **JavaScript Module**.
 4. Genindlæs dashboardet. Tilføj kortet **Zenbi · Skoleoverblik**, eller
    indsæt YAML nedenfor som et manuelt kort.
 
@@ -137,13 +144,13 @@ Screenshots viser demodata. Kortet skal stadig prøves med din faktiske HA-insta
 - API-ruter, HTTP-metoder, loginfelter, tokenfornyelse, samlinger, tilknytning
   via grupper og kalendergentagelser er kortlagt fra offentlig JavaScript
   leveret af webappen den 11. oktober 2026.
-- 22 automatiske tests med kunstige data er bestået: tokenfornyelse, HTTP-fejl,
+- 23 automatiske tests med kunstige data er bestået: tokenfornyelse, HTTP-fejl,
   gruppefiltrering, tekstkonvertering, gentagelser, flytninger, sommertid og
   delvise kildefejl.
 - Python-filer er syntakskontrolleret.
 
-**Ikke testet endnu:** direkte autentificerede API-svar gennem denne klient,
-installation i en rigtig HA-instans og HA's fulde config flow.
+**Ikke automatisk testet:** direkte autentificerede API-svar gennem denne klient
+og HA's fulde config flow. Brugerens HA-test har bekræftet installation og datapoll.
 Brugerfladeadgang er ikke en end-to-end-test af integrationskoden. API-svar kan
 kræve tilpasning ved første installation. Automatiske HACS- og hassfest-checks
 kører på GitHub; se repositoryets Actions-side for deres aktuelle status.
@@ -210,7 +217,7 @@ Hvis tilknytning til et barn ikke kan bevises, vises barnets sensor som
 utilgængelig; den samlede liste og tallet `uden_barnetilknytning` hjælper med
 at finde datamodellen uden at vise et misvisende nul.
 
-## Begrænsninger i denne beta
+## Begrænsninger
 
 - Totrinslogin/passkeys understøttes endnu ikke i HA-dialogen. Hvis Zenbi
   kræver det, stopper opsætningen med en forklarende besked.
@@ -241,7 +248,7 @@ beskeder læst, sende beskeder, redigere lektier eller oprette aftaler.
    `custom_components/zenbi` og `hacs.json` skal ligge direkte i roden.
 4. Kør HACS- og hassfest-validering og ret eventuelle krav, før udgivelse.
    GitHub-workflowet i `.github/workflows/validate.yml` er inkluderet.
-5. En release med tag `v0.1.0-beta.4` er valgfri; HACS kan hente fra `main`.
+5. En release med tag `v1.0.0` er valgfri; HACS kan hente fra `main`.
 6. I HACS: **Custom repositories / Brugerdefinerede repositories**, tilføj
    repositoryets URL, vælg **Integration**, og installer Zenbi.
 
@@ -250,7 +257,7 @@ Manifestets dokumentationslink, issue-link og codeowner er konfigureret til
 
 HACS-workflowet kontrollerer integrationspakken, manifest, branding og øvrige
 installationskrav. Kontrollerne af GitHub-beskrivelse og topics er undtaget,
-da denne beta installeres som et custom repository. GitHub-connectoren kan
+da integrationen installeres som et custom repository. GitHub-connectoren kan
 ikke ændre disse repositoryindstillinger. Før en ansøgning om optagelse i
 HACS' standardkatalog skal en beskrivelse og topics tilføjes i GitHubs
 **About**, fx `home-assistant`, `hacs`, `zenbi`, og undtagelserne fjernes.
@@ -265,6 +272,6 @@ python -m compileall -q custom_components scripts
 ```
 
 Testene bruger syntetiske skoledata og lette HA-interface-doubles. En rigtig
-HA-test og autentificerede API-tests skal supplere dem før en stabil release.
+Autentificerede API-tests er ikke kørt automatisk; de syntetiske tests suppleres af brugerens HA-test.
 
 Se `docs/API_NOTES.md` for de observerede kontrakter og åbne spørgsmål.

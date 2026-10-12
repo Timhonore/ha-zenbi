@@ -236,7 +236,7 @@ def expand_calendar(raw: list[dict], start: datetime, end: datetime, zone: str) 
 def item(row: dict, kind: str, children: list[str], *, title: str | None = None) -> dict:
     if not row.get("id"):
         raise SchemaError("Missing item id")
-    return {"id": row["id"], "kind": kind, "title": title or row.get("title") or row.get("headline") or row.get("subject") or kind,
+    return {"id": row["id"], "kind": kind, "title": title or row.get("title") or row.get("headline") or row.get("subject") or {"homework": "Lektie", "tasks": "Opgave", "weekly_plans": "Ugeplan", "messages": "Besked", "posts": "Opslag"}.get(kind, "Begivenhed"),
             "text": text(row.get("description")), "date": row.get("date") or row.get("closes") or row.get("start") or row.get("dateTime"),
             "end": row.get("end"), "updated": row.get("updatedTime"), "children": children,
             "attachment_count": len(row.get("files") or [])}

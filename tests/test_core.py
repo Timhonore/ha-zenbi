@@ -56,6 +56,12 @@ class Session:
 
 
 class ModelsTest(unittest.TestCase):
+    def test_localized_missing_item_title(self):
+        for kind, label in [("homework", "Lektie"), ("tasks", "Opgave"),
+                            ("weekly_plans", "Ugeplan"), ("messages", "Besked"), ("posts", "Opslag")]:
+            self.assertEqual(models.item({"id": "demo"}, kind, [])["title"], label)
+        self.assertEqual(models.item({"id": "demo", "title": "Ugens emne"}, "weekly_plans", [])["title"], "Ugens emne")
+
     def setUp(self):
         self.tz = ZoneInfo("Europe/Copenhagen")
         self.start = datetime(2026, 10, 19, tzinfo=self.tz)

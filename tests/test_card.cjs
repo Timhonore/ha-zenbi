@@ -98,7 +98,7 @@ const root = path.resolve(__dirname, "..");
     };
     const plan = {
       id: "plan",
-      title: "Ugens plan · dansk og natur",
+      title: "weekly_plans",
       text: "Vi arbejder med fortællinger og undersøger efterårets farver.",
       date: day(0),
     };
@@ -355,13 +355,21 @@ const root = path.resolve(__dirname, "..");
     await card.screenshot({
       path: path.join(root, "docs/images/zenbi-card-dark-mobile.png"),
     });
+  const nav = card.locator("nav");
+  assert.equal(await nav.evaluate(node => node.scrollWidth > node.clientWidth), true,
+    "Mobile tabs use horizontal scrolling");
+  const navTop = (await nav.boundingBox()).y;
   for (const tab of await card.locator("nav button").all()) {
+    await tab.click();
     const box = await tab.boundingBox();
-    assert.ok(
-      box.x >= 0 && box.x + box.width <= 360,
-      "Every tab fits on mobile",
-    );
+    assert.ok(box.x >= 0 && box.x + box.width <= 360, "Each tab can be scrolled into view");
+    assert.ok(Math.abs((await nav.boundingBox()).y - navTop) <= 1,
+      "Horizontal tab scrolling keeps the page position");
+    if (await tab.getAttribute("data-tab") === "weekly_plans")
+      assert.equal(await card.locator(".item-title").textContent(), "Ugeplan",
+        "Legacy weekly_plans titles display in Danish");
   }
+  assert.ok(await nav.evaluate(node => node.scrollLeft) > 0, "The tab row scrolls horizontally");
   assert.equal(
     await card.getByRole("button", { name: "Freja", exact: true }).count(),
     1,
