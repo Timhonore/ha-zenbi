@@ -4,7 +4,8 @@
 
 [![Validate](https://github.com/Timhonore/ha-zenbi/actions/workflows/validate.yml/badge.svg)](https://github.com/Timhonore/ha-zenbi/actions/workflows/validate.yml)
 
-**Version 1.0.0 — uofficiel integration.**
+**Udgivelse v.1.0 — uofficiel integration.**
+HA, diagnostik og card bruger det interne versionsnummer `1.0.0`.
 
 Henter lektier, opgaver, ugeplaner, kalender, beskeder og opslag fra den konto,
 du selv har adgang til på `app.zenbi.dk`. Installeres gennem HACS som et custom
@@ -43,6 +44,18 @@ Assistant fra version 2026.3; tidligere versioner kan vise standardikon.
 - Cardet viser fornavne og alle fem faner på mobilbredde. `full_names: true`
   kan vise fulde navne. Entiteternes navne og id'er ændres ikke af cardet.
 - Diagnostikkens versionsnummer følger nu den installerede version.
+
+## Automatiske opdateringstjek i HACS
+
+HACS tjekker custom repositories hver 48. time. **Opdater oplysninger** kan
+hente udgivelsen med det samme. En navngivet release ændrer ikke HACS' interval.
+Kilde: [HACS data sources](https://www.hacs.dev/docs/faq/data_sources/).
+
+I HACS 2.0.5 henter `homeassistant.update_entity` ikke nye repositorydata,
+så en automation med den handling kan ikke forkorte intervallet.
+
+Ved overgangen fra commit-id til den første release kan HACS kræve, at du én
+gang vælger **Download igen** og version `v1.0`. Senere udgivelser bruger versionsnumre.
 
 ## Ikon på HACS-opdateringsentiteten
 
@@ -248,7 +261,9 @@ beskeder læst, sende beskeder, redigere lektier eller oprette aftaler.
    `custom_components/zenbi` og `hacs.json` skal ligge direkte i roden.
 4. Kør HACS- og hassfest-validering og ret eventuelle krav, før udgivelse.
    GitHub-workflowet i `.github/workflows/validate.yml` er inkluderet.
-5. En release med tag `v1.0.0` er valgfri; HACS kan hente fra `main`.
+5. Efter godkendt validering udgiver `.github/workflows/release.yml` nye stabile
+   versionsnumre som GitHub-releases. Første udgivelse hedder **v.1.0**
+   (tag `v1.0`, internt versionsnummer `1.0.0`). Allerede udgivne tags flyttes ikke.
 6. I HACS: **Custom repositories / Brugerdefinerede repositories**, tilføj
    repositoryets URL, vælg **Integration**, og installer Zenbi.
 
