@@ -1,4 +1,4 @@
-# Tilføj først dashboard-resource /zenbi-card/zenbi-card.js?v=1.0.0
+# Tilføj først dashboard-resource /zenbi-card/zenbi-card.js?v=1.0.1
 # som JavaScript Module. Opdater integrationen og genstart HA først.
 # Børn og entiteter findes automatisk; ingen entity-id'er kræves her.
 type: custom:zenbi-card

@@ -4,8 +4,8 @@
 
 [![Validate](https://github.com/Timhonore/ha-zenbi/actions/workflows/validate.yml/badge.svg)](https://github.com/Timhonore/ha-zenbi/actions/workflows/validate.yml)
 
-**Udgivelse v.1.0 — uofficiel integration.**
-HA, diagnostik og card bruger det interne versionsnummer `1.0.0`.
+**Udgivelse v.1.0.1 — uofficiel integration.**
+HA, diagnostik og card bruger det interne versionsnummer `1.0.1`.
 
 Henter lektier, opgaver, ugeplaner, kalender, beskeder og opslag fra den konto,
 du selv har adgang til på `app.zenbi.dk`. Installeres gennem HACS som et custom
@@ -21,6 +21,16 @@ repository: **https://github.com/Timhonore/ha-zenbi**.
 
 Zenbis officielle appikon er inkluderet. Lokale brandikoner vises i Home
 Assistant fra version 2026.3; tidligere versioner kan vise standardikon.
+
+## Nyt i 1.0.1
+
+- Vælg emner i korteditoren: Lektier, Kalender, Beskeder, Ugeplan og Opslag.
+- Skjulte emner har ingen faner eller tællere. Et kort med kun fælles emner
+  (beskeder og opslag) viser heller ikke børnevælgeren.
+- Hvert kort har sit eget valg, og mindst ét emne skal være valgt.
+- Børnenes sensorer har attributterne `barn_id`, `barn_navn` og `klasse`.
+- Cardeditoren kan knytte et barn til en eksisterende HA-person for at vise
+  personens profilbillede. Klassen vises fra Zenbi. HA-personer ændres ikke.
 
 ## Nyt i 1.0.0
 
@@ -93,10 +103,10 @@ fra HA's entitetsregister; du behøver ikke kende deres entity-id'er.
 
 **Installér kortet:**
 
-1. Opdater Zenbi til **1.0.0** i HACS og genstart HA.
+1. Opdater Zenbi til **1.0.1** i HACS og genstart HA.
 2. Aktivér avanceret tilstand på din HA-profil, hvis Ressourcer ikke vises.
 3. Åbn **Indstillinger → Dashboards → ⋮ → Ressourcer** og tilføj
-   `/zenbi-card/zenbi-card.js?v=1.0.0` som **JavaScript Module**.
+   `/zenbi-card/zenbi-card.js?v=1.0.1` som **JavaScript Module**.
 4. Genindlæs dashboardet. Tilføj kortet **Zenbi · Skoleoverblik**, eller
    indsæt YAML nedenfor som et manuelt kort.
 
@@ -104,14 +114,30 @@ fra HA's entitetsregister; du behøver ikke kende deres entity-id'er.
 type: custom:zenbi-card
 title: Familiens skoleoverblik
 max_items: 5
-show_posts: true
+topics:
+  - homework
+  - calendar
+  - messages
+  - weekly_plans
+  - posts
 ```
+
+Vælg emner under **Emner på kortet** i den visuelle editor. I YAML kan fx
+`topics: [homework, calendar]` vise kun lektier og kalender. Uden `topics`
+vises alle emner. Ældre `show_posts: false` virker stadig, når `topics` ikke er sat.
+Valget påvirker kun dette kort; integrationens sensorer og kalendere fortsætter.
+
+Under **Børnenes profilbilleder** kan du vælge en eksisterende HA-person,
+fx `person.ellen`, til hvert Zenbi-barn. Cardet bruger personens `entity_picture`
+og viser barnets klasse fra Zenbis metadata. Intet billede hentes direkte fra Zenbi
+med denne version. Børn uden et billede vises fortsat med initialer.
+I YAML er `persons` en map fra Zenbis barn-id til HA-personens entity-id.
 
 Card-filen følger med integrationens HACS-download. Den kræver en opsat Zenbi-
 integration for at kunne vises på `/zenbi-card/`. Resource tilføjes én gang;
 ved kommende opdateringer skal versionsparameteren ændres for at undgå gammel
 browsercache. Kortet kan konfigureres i den visuelle editor (titel, konto,
-antal rækker og opslag). Har du flere Zenbi-konti, vælg konto i editoren.
+antal rækker og valg af emner). Har du flere Zenbi-konti, vælg konto i editoren.
 For YAML-dashboards tilføjes URL'en under Lovelaces `resources` med `type: module`.
 
 ![Zenbi Card — syntetiske demodata](docs/images/zenbi-card-light.png)

@@ -64,6 +64,10 @@ class ZenbiSensor(ZenbiEntity, SensorEntity):
     def extra_state_attributes(self):
         data = self.coordinator.data
         attrs = {"senest_opdateret": data["updated"]}
+        if self.child_id:
+            child = self.coordinator.children.get(self.child_id, {})
+            attrs.update({"barn_id": self.child_id, "barn_navn": child.get("name", ""),
+                          "klasse": child.get("class", "")})
         if self.kind == "status":
             attrs.update({"datakilder": data["status"], "uden_barnetilknytning": data["unmapped"],
                           "periode_fra": data["range_start"], "periode_til": data["range_end"]})

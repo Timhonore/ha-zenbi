@@ -124,6 +124,8 @@ const root = path.resolve(__dirname, "..");
       ],
       "Beskeder",
     );
+    states["sensor.demo_homework_freja"].attributes.klasse = "2.A";
+    states["person.demo_freja"] = {state:"home",attributes:{friendly_name:"Freja",entity_picture:"/zenbi-card/icon.png"}};
     add("unread", "all", 2, [], "Ulæste beskeder");
     add("posts", "all", 0, [], "Opslag");
     add("status", "all", "ok", [], "Datastatus");
@@ -317,6 +319,53 @@ const root = path.resolve(__dirname, "..");
     await page.evaluate(() => editorConfig.title),
     "Familiens skole",
   );
+  await page.locator("zenbi-card-editor select[data-person-child=freja]").selectOption("person.demo_freja");
+  assert.equal(await page.evaluate(() => editorConfig.persons.freja), "person.demo_freja",
+    "Editor stores the child's selected HA person");
+  await page.evaluate(() => {
+    card.setConfig({type:"custom:zenbi-card",persons:{freja:"person.demo_freja"}});
+    card.hass = hass;
+  });
+  assert.equal(await card.locator("button[data-child=freja] .avatar img").getAttribute("src"), "/zenbi-card/icon.png");
+  assert.equal(await card.locator("button[data-child=freja] .child-class").textContent(), "2.A");
+  await page.evaluate(() => {
+    const states = {...hass.states,"person.demo_freja":{state:"home",attributes:{entity_picture:"/zenbi-card/icon.png?updated"}}};
+    card.hass = {...hass,states};
+  });
+  assert.equal(await card.locator("button[data-child=freja] .avatar img").getAttribute("src"), "/zenbi-card/icon.png?updated",
+    "Person-only state changes update the photo");
+  for (const topic of ["homework", "messages", "weekly_plans", "posts"])
+    await page.locator(`zenbi-card-editor input[data-topic=${topic}]`).uncheck();
+  assert.deepEqual(await page.evaluate(() => editorConfig.topics), ["calendar"],
+    "Editor saves the selected topics");
+  assert.equal(await page.locator("zenbi-card-editor input[data-topic=calendar]").isDisabled(), true,
+    "At least one topic must stay selected");
+  await page.evaluate(() => {
+    card.setConfig({type:"custom:zenbi-card", topics:["calendar", "messages"]});
+    card.hass = hass;
+  });
+  await card.getByText("Fælles morgenmad", {exact:true}).waitFor();
+  assert.equal(await card.locator("nav button").count(), 2);
+  assert.equal(await card.locator("nav button[aria-pressed=true]").getAttribute("data-tab"), "calendar",
+    "A hidden active tab falls back to a visible one");
+  assert.equal(await card.locator(".stat").count(), 1, "Hidden topics have no counters");
+  await page.evaluate(() => card.setConfig({type:"custom:zenbi-card",topics:["messages"]}));
+  assert.equal(await card.locator("nav button").count(), 1);
+  assert.equal(await card.locator(".children").count(), 0, "Common-only topics need no child filter");
+  await page.evaluate(() => card.setConfig({type:"custom:zenbi-card",topics:["calendar"]}));
+  assert.equal(await card.locator(".stats").count(), 0, "No empty stats row on a calendar-only card");
+  assert.match(await page.evaluate(() => {
+    try {card.setConfig({type:"custom:zenbi-card",topics:[]});}
+    catch (error) {return error.message;}
+  }), /mindst ét/);
+  await page.evaluate(() => card.setConfig({type:"custom:zenbi-card",show_posts:false}));
+  assert.equal(await card.locator("nav button[data-tab=posts]").count(), 0,
+    "Legacy show_posts remains supported");
+  await page.evaluate(() => {
+    card.setConfig({type:"custom:zenbi-card",max_items:2});
+    card._tab = "homework";
+    card._render();
+  });
   await page.evaluate(() => {
     document.querySelector("zenbi-card-editor").remove();
     states["sensor.demo_homework_oscar"].attributes.items[0].title =
