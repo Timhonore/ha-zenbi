@@ -105,6 +105,13 @@ class ZenbiCard extends HTMLElement {
     this._showAll = false;
     this._calendarGeneration = 0;
     this.shadowRoot.addEventListener("click", (e) => this._click(e));
+    this.shadowRoot.addEventListener("error", (event) => {
+      if (event.target.matches?.(".avatar img")) {
+        const button = event.target.closest(".child");
+        event.target.parentElement.textContent = (button?.getAttribute("aria-label") || "")
+          .split(/\s+/).map(part => part[0]).slice(0, 2).join("");
+      }
+    }, true);
     this.shadowRoot.addEventListener(
       "toggle",
       (e) => {

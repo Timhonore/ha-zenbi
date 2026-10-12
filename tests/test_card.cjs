@@ -15,7 +15,7 @@ const root = path.resolve(__dirname, "..");
   page.on("pageerror", (e) => errors.push(e.message));
   await page.route("http://zenbi.test/**", (route) =>
     route.fulfill(
-      route.request().url().endsWith("icon.png")
+      route.request().url().split("?")[0].endsWith("icon.png")
         ? {
             contentType: "image/png",
             body: fs.readFileSync(
