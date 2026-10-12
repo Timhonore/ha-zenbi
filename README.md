@@ -233,6 +233,29 @@ Browserprøver bruger syntetiske data: automatisk entitetsvalg, børnefiltrering
 kalender, udfoldning, HTML-escaping, utilgængelige kilder, editor og mobilbredde.
 Screenshots viser demodata. Kortet skal stadig prøves med din faktiske HA-instans.
 
+## Påmindelse om idræt dagen før
+
+Skoleskemaets kalenderpunkter kan bruges til automationer uden en ekstra sensor.
+Blueprinten [Zenbi - fagpåmindelse](blueprints/automation/zenbi_subject_reminder.yaml)
+henter hele morgendagens skema og sender én påmindelse pr. barn/fag ved et valgt
+klokkeslæt. Standard: **18:00**, fag **idræt**. Flere idrætstimer samme dag giver
+én besked med første starttid.
+
+[Importer blueprinten i HA](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FTimhonore%2Fha-zenbi%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fzenbi_subject_reminder.yaml).
+Opret én automation pr. barn. Vælg barnets **Kalender**, indtast barnets navn og
+vælg telefonen, som skal modtage påmindelsen. Vælg ikke **Lektiefrister** eller
+kontoens egen kalender. Navne og telefon-id'er vælges lokalt i din HA.
+Fag, klokkeslæt og huskebesked kan ændres i formularen.
+
+Eksempel: **Barnet har idræt i morgen kl. 08:00. Husk idrætstøj, sko og håndklæde.**
+Du kan også oprette en anden automation til fx musik eller svømning.
+Blueprinten importeres særskilt; en opdatering af integrationen er ikke nødvendig.
+Der aktiveres først notifikationer, når du selv opretter automationerne i HA.
+
+Blueprintens YAML og templates er kontrolleret med syntetiske events, flere
+idrætsperioder, hele-dags-events og tidszoneskift. Den er endnu ikke kørt i
+brugerens HA. Kilde: [HA kalenderhandlinger](https://www.home-assistant.io/integrations/calendar/).
+
 ## Hvad er testet?
 
 - Login og adgang til forældrevisningerne blev bekræftet i Zenbis webapp.

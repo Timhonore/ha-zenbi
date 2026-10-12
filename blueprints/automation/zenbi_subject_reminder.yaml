@@ -1,0 +1,98 @@
+blueprint:
+  name: Zenbi - husk idræt eller andet fag i morgen
+  description: >-
+    Tjekker morgendagens skoleskema på et valgt klokkeslæt og sender én
+    påmindelse, hvis faget findes. Vælg barnets Zenbi-Kalender (ikke Lektiefrister).
+    Opret én automation pr. barn. Fag, tid og besked kan ændres.
+  domain: automation
+  author: Timhonore
+  source_url: https://github.com/Timhonore/ha-zenbi/blob/main/blueprints/automation/zenbi_subject_reminder.yaml
+  homeassistant:
+    min_version: 2025.6.0
+  input:
+    child_calendar:
+      name: Barnets Zenbi-kalender
+      description: Vælg kalenderen med barnets navn efterfulgt af Kalender.
+      selector:
+        entity:
+          filter:
+            - integration: zenbi
+              domain: calendar
+    child_name:
+      name: Barnets navn
+      description: Navnet bruges i påmindelsen og gemmes kun i din egen HA.
+      selector:
+        text:
+    subject:
+      name: Fag eller aktivitet
+      default: idræt
+      description: Søger i timens titel; fx idræt, musik eller svømning.
+      selector:
+        text:
+    reminder_time:
+      name: Påmindelsestid dagen før
+      default: "18:00:00"
+      selector:
+        time:
+    packing_message:
+      name: Huskebesked
+      default: Husk idrætstøj, sko og håndklæde.
+      selector:
+        text:
+    notification_device:
+      name: Telefon der skal modtage påmindelsen
+      description: Vælg en telefon med Home Assistant Companion App.
+      selector:
+        device:
+          filter:
+            - integration: mobile_app
+
+variables:
+  school_calendar: !input child_calendar
+  child: !input child_name
+  subject_name: !input subject
+  packing_text: !input packing_message
+
+triggers:
+  - trigger: time
+    at: !input reminder_time
+
+# A daily query reads every event, not just the calendar's next-event attribute.
+# Multiple periods of the same subject produce one notification per daily run.
+actions:
+  - action: calendar.get_events
+    target:
+      entity_id: !input child_calendar
+    data:
+      start_date_time: "{{ (today_at('00:00') + timedelta(days=1)).isoformat() }}"
+      end_date_time: "{{ (today_at('00:00') + timedelta(days=2)).isoformat() }}"
+    response_variable: school_day
+  - variables:
+      matching_events: >-
+        {%- set needle = subject_name | trim | lower
+           | replace('æ', 'ae') | replace('ø', 'oe') | replace('å', 'aa') -%}
+        {%- set ns = namespace(events=[]) -%}
+        {%- for event in school_day.get(school_calendar, {}).get('events', []) -%}
+          {%- set title = event.get('summary', '') | lower
+             | replace('æ', 'ae') | replace('ø', 'oe') | replace('å', 'aa') -%}
+          {%- if needle and needle in title -%}
+            {%- set ns.events = ns.events + [event] -%}
+          {%- endif -%}
+        {%- endfor -%}
+        {{- ns.events | sort(attribute='start') | list -}}
+  - condition: template
+    value_template: "{{ matching_events | count > 0 }}"
+  - variables:
+      reminder_title: "{{ child }} har {{ subject_name }} i morgen"
+      reminder_message: >-
+        {% set first = matching_events[0].start | string %}
+        {{ child }} har {{ subject_name }} i morgen{% if 'T' in first or ' ' in first %}
+        kl. {{ (as_datetime(first) | as_local).strftime('%H:%M') }}{% endif %}.
+        {{ packing_text }}
+  - device_id: !input notification_device
+    domain: mobile_app
+    type: notify
+    title: "{{ reminder_title }}"
+    message: "{{ reminder_message }}"
+
+mode: single
