@@ -26,7 +26,8 @@
     },
     "error": {
       "invalid_auth": "Zenbi rejected the credentials. Check your login and any password-change requirement.",
-      "cannot_connect": "Cannot connect to Zenbi or recognize the response. Try again later."
+      "cannot_connect": "Cannot connect to Zenbi or recognize the response. Try again later.",
+      "session_rejected": "Zenbi rejected the session after login or while fetching data. Check the integration version and sign in again."
     },
     "abort": {
       "already_configured": "This account is already configured.",

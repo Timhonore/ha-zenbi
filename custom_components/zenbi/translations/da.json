@@ -26,7 +26,8 @@
     },
     "error": {
       "invalid_auth": "Zenbi afviste login. Kontrollér oplysningerne og eventuelt krav om skift af adgangskode.",
-      "cannot_connect": "Kunne ikke forbinde eller genkende Zenbis datasvar. Prøv igen senere."
+      "cannot_connect": "Kunne ikke forbinde eller genkende Zenbis datasvar. Prøv igen senere.",
+      "session_rejected": "Zenbi afviste sessionen efter login eller ved hentning af data. Kontrollér integrationsversionen, og prøv at logge ind igen."
     },
     "abort": {
       "already_configured": "Kontoen er allerede konfigureret.",

@@ -69,8 +69,8 @@ class ZenbiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 if organizations:
                     return await self.async_step_organization()
                 return self.async_abort(reason="unsupported_two_factor")
-            except AuthenticationError:
-                errors["base"] = "invalid_auth"
+            except AuthenticationError as err:
+                errors["base"] = err.reason
             except (ZenbiError, SchemaError):
                 errors["base"] = "cannot_connect"
         return self.async_show_form(step_id="user", data_schema=vol.Schema({

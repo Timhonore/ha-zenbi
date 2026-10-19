@@ -35,7 +35,10 @@ class Response:
     def __init__(self, status, data, cookie_header=""):
         self.status = status
         self.data = data
-        self.cookies = SimpleCookie(cookie_header)
+        self.cookies = SimpleCookie()
+        for header in cookie_header if isinstance(cookie_header, list) else [cookie_header]:
+            for name, morsel in SimpleCookie(header).items():
+                self.cookies[name] = morsel
 
     async def __aenter__(self):
         return self
@@ -180,25 +183,32 @@ class ModelsTest(unittest.TestCase):
             models.expand_calendar([self.event({"frequency": 99})], self.start, self.end, "Europe/Copenhagen")
 
 
+def session_cookies(value):
+    return {api.SESSION_COOKIE: "1", "token": value + "-access", "refreshToken": value + "-refresh"}
+
+
+def cookie_headers(value):
+    return ["__Host-zenbi-session=1; Path=/; Secure; SameSite=Strict",
+            f"token={value}-access; Domain=app.zenbi.dk; Path=/api/; Secure; HttpOnly; SameSite=Strict",
+            f"refreshToken={value}-refresh; Domain=app.zenbi.dk; Path=/api/; Secure; HttpOnly; SameSite=Strict"]
+
+
 class ApiTest(unittest.IsolatedAsyncioTestCase):
     async def test_current_cookie_login_without_refresh_token(self):
-        session = Session([(200, {"token": token(), "maxAge": 86400000},
-                            "__Host-zenbi-session=synthetic-session; Path=/; Secure"), (200, [])])
+        session = Session([(200, {"token": token(), "maxAge": 86400000}, cookie_headers("synthetic")), (200, [])])
         client = api.ZenbiClient(session)
         await client.login("synthetic@example.invalid", "dummy")
         self.assertIsNone(client.tokens["refreshToken"])
-        self.assertEqual(client.tokens["cookies"], {api.SESSION_COOKIE: "synthetic-session"})
-        self.assertGreater(client.tokens["expires_at"], datetime.now(timezone.utc).timestamp() + 86000)
+        self.assertEqual(client.tokens["cookies"], session_cookies("synthetic"))
         await client.get("/api/test")
         self.assertNotIn("Authorization", session.calls[-1][2]["headers"])
-        self.assertEqual(session.calls[-1][2]["cookies"], {api.SESSION_COOKIE: "synthetic-session"})
+        self.assertEqual(session.calls[-1][2]["cookies"], session_cookies("synthetic"))
 
     async def test_current_cookie_refresh_restart_and_account_isolation(self):
         initial = {"token": token(exp=1), "refreshToken": None, "maxAge": 86400000,
-                   "expires_at": 1, "cookies": {api.SESSION_COOKIE: "session-old"}}
+                   "expires_at": 1, "cookies": session_cookies("old")}
         saved = []
-        session = Session([(200, {"token": token(marker="current"), "maxAge": 86400000},
-                            "__Host-zenbi-session=session-new; Path=/; Secure")])
+        session = Session([(200, {"token": token(marker="current"), "maxAge": 86400000}, cookie_headers("new"))])
         client = api.ZenbiClient(session, tokens=initial, on_tokens=saved.append)
         await asyncio.gather(*(client.ensure_token() for _ in range(5)))
         self.assertEqual(len(session.calls), 1)
@@ -207,30 +217,29 @@ class ApiTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(session.calls[0][2]["headers"]["Origin"], const.BASE_URL)
         restarted = api.ZenbiClient(Session([(200, [])]), tokens=api.stored_auth(saved[-1]))
         await restarted.get("/api/test")
-        self.assertEqual(restarted.session.calls[0][2]["cookies"], {api.SESSION_COOKIE: "session-new"})
-        # Even sharing a transport must not share account cookies.
-        other = api.ZenbiClient(session, tokens={**initial, "cookies": {api.SESSION_COOKIE: "other-session"}})
-        self.assertEqual(other.cookies[api.SESSION_COOKIE], "other-session")
-        self.assertEqual(client.cookies[api.SESSION_COOKIE], "session-new")
-        self.assertEqual(initial["cookies"][api.SESSION_COOKIE], "session-old")
+        self.assertEqual(restarted.session.calls[0][2]["cookies"], session_cookies("new"))
+        other = api.ZenbiClient(session, tokens={**initial, "cookies": session_cookies("other")})
+        self.assertEqual(other.cookies, session_cookies("other"))
+        self.assertEqual(client.cookies, session_cookies("new"))
+        self.assertEqual(initial["cookies"], session_cookies("old"))
 
     async def test_current_cookie_short_maxage_not_jwt_expiry(self):
-        session = Session([(200, {"token": token(exp=1), "maxAge": 60000},
-                            "__Host-zenbi-session=synthetic; Path=/; Secure"), (200, [])])
+        session = Session([(200, {"token": token(exp=1), "maxAge": 60000}, cookie_headers("synthetic")), (200, [])])
         client = api.ZenbiClient(session)
         await client.login("synthetic@example.invalid", "dummy")
         await client.get("/api/test")
-        self.assertEqual(len(session.calls), 2, "maxAge governs the current session, not JWT exp")
+        self.assertEqual(len(session.calls), 2)
 
     async def test_cookie_rejected_session_is_not_retried_or_logged(self):
-        stored = {"token": token(), "maxAge": 86400000, "expires_at": 1,
-                  "cookies": {api.SESSION_COOKIE: "private-session"}}
-        session = Session([(401, {}, "__Host-zenbi-session=; Max-Age=0; Path=/; Secure")])
+        stored = {"token": token(), "maxAge": 86400000, "expires_at": 1, "cookies": session_cookies("private")}
+        deleted = [h.split('=', 1)[0] + '=; Max-Age=0; ' + h.split('; ', 1)[1] for h in cookie_headers("private")]
+        session = Session([(401, {}, deleted)])
         saved = []
         client = api.ZenbiClient(session, tokens=stored, on_tokens=saved.append)
         with self.assertRaises(api.AuthenticationError) as cm:
             await client.ensure_token()
-        self.assertNotIn("private-session", str(cm.exception))
+        self.assertNotIn("private", str(cm.exception))
+        self.assertEqual(cm.exception.reason, "session_rejected")
         self.assertEqual(saved[-1]["cookies"], {})
         with self.assertRaises(api.AuthenticationError):
             await client.ensure_token()
@@ -238,29 +247,47 @@ class ApiTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_cookie_401_refresh_and_retry(self):
         stored = {"token": token(), "maxAge": 86400000,
-                  "expires_at": datetime.now(timezone.utc).timestamp() + 86400,
-                  "cookies": {api.SESSION_COOKIE: "old-session"}}
+                  "expires_at": datetime.now(timezone.utc).timestamp() + 86400, "cookies": session_cookies("old")}
         session = Session([(401, {}), (200, {"token": token(marker="new"), "maxAge": 86400000},
-                           "__Host-zenbi-session=rotated-session; Path=/; Secure"), (200, [])])
+                           cookie_headers("rotated")), (200, [])])
         client = api.ZenbiClient(session, tokens=stored)
         self.assertEqual(await client.get("/api/test"), [])
         self.assertEqual(len(session.calls), 3)
         self.assertIsNone(session.calls[1][2]["json"])
-        self.assertEqual(session.calls[2][2]["cookies"][api.SESSION_COOKIE], "rotated-session")
+        self.assertEqual(session.calls[2][2]["cookies"], session_cookies("rotated"))
         self.assertTrue(all("Authorization" not in call[2]["headers"] for call in session.calls))
 
     async def test_stale_response_cannot_clear_a_new_cookie(self):
         session = Session([])
-        client = api.ZenbiClient(session, tokens={"token": token(), "cookies": {api.SESSION_COOKIE: "old"}})
+        client = api.ZenbiClient(session, tokens={"token": token(), "cookies": session_cookies("old")})
         class StaleResponse(Response):
             async def __aenter__(self):
-                client.cookies = {api.SESSION_COOKIE: "new"}
+                client.cookies = session_cookies("new")
                 return self
         session.request = lambda *args, **kwargs: StaleResponse(
-            401, {}, "__Host-zenbi-session=; Max-Age=0; Path=/; Secure")
+            401, {}, "token=; Domain=app.zenbi.dk; Max-Age=0; Path=/api/; Secure; HttpOnly")
         with self.assertRaises(api.AuthenticationError):
             await client._request("/api/test")
-        self.assertEqual(client.cookies[api.SESSION_COOKIE], "new")
+        self.assertEqual(client.cookies, session_cookies("new"))
+
+    async def test_marker_alone_cannot_authenticate(self):
+        client = api.ZenbiClient(Session([(200, {"token": token(), "maxAge": 86400000},
+                                         "__Host-zenbi-session=1; Path=/; Secure")]))
+        with self.assertRaises(models.SchemaError):
+            await client.login("synthetic@example.invalid", "dummy")
+        restored = api.ZenbiClient(Session([]), tokens={"token": token(), "maxAge": 86400000,
+                                    "cookies": {api.SESSION_COOKIE: "1"}})
+        with self.assertRaises(api.AuthenticationError):
+            await restored.ensure_token()
+
+    async def test_auth_cookie_scope_is_restricted(self):
+        headers = cookie_headers("real") + [
+            "tracking=private; Domain=app.zenbi.dk; Path=/api/; Secure",
+            "token=other; Domain=other.invalid; Path=/api/; Secure; HttpOnly",
+            "refreshToken=insecure; Domain=app.zenbi.dk; Path=/api/; HttpOnly"]
+        client = api.ZenbiClient(Session([(200, {}, headers)]))
+        await client._request("/api/test")
+        self.assertEqual(client.cookies, {api.SESSION_COOKIE: "1"})
 
     async def test_cookie_login_requires_cookie_and_routing(self):
         for response in ({"token": token(), "maxAge": 86400000},

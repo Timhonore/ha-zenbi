@@ -12,6 +12,7 @@ from .const import AUTH_PATH, BASE_URL, ENDPOINTS, ZERO_GUID
 from .models import SchemaError, claims, guid, profile, rows
 
 SESSION_COOKIE = "__Host-zenbi-session"
+AUTH_COOKIES = frozenset((SESSION_COOKIE, "token", "refreshToken"))
 AUTH_FIELDS = ("token", "refreshToken", "cookies", "maxAge", "expires_at")
 
 
@@ -20,14 +21,16 @@ def stored_auth(data):
     return {key: data[key] for key in AUTH_FIELDS if key in data}
 
 
-
-
 class ZenbiError(Exception):
     """A sanitized API error."""
 
 
 class AuthenticationError(ZenbiError):
-    """Invalid or expired authentication."""
+    """Invalid or expired authentication; reason is a fixed UI translation key."""
+
+    def __init__(self, message, reason="invalid_auth"):
+        super().__init__(message)
+        self.reason = reason
 
 
 class PermissionError(ZenbiError):
@@ -52,7 +55,7 @@ class ZenbiClient:
         self.device_id = device_id or str(uuid4())
         self.tokens = dict(tokens or {})
         self.cookies = {key: value for key, value in (self.tokens.get("cookies") or {}).items()
-                        if key == SESSION_COOKIE and isinstance(value, str) and value}
+                        if key in AUTH_COOKIES and isinstance(value, str) and value}
         self.on_tokens = on_tokens
         self.refresh_before = max(3600, refresh_before)
         self._lock = asyncio.Lock()
@@ -75,21 +78,35 @@ class ZenbiClient:
             async with self.session.request(method, BASE_URL + path, params=query, json=body,
                                             headers=headers, cookies=request_cookies, timeout=aiohttp.ClientTimeout(total=30),
                                             allow_redirects=False) as response:
-                # Only retain Zenbi's host-bound session cookie, separately for
-                # each account. Never use HA's shared session cookie jar.
-                cookie = getattr(response, "cookies", {}).get(SESSION_COOKIE)
-                if (cookie is not None and not cookie["domain"] and cookie["path"] == "/"
-                        and request_cookies == self.cookies):
-                    if cookie.value and cookie["max-age"] != "0":
-                        self.cookies = {SESSION_COOKIE: cookie.value}
-                    else:
-                        self.cookies = {}
-                    if self.tokens:
-                        self.tokens["cookies"] = dict(self.cookies)
-                        if self.on_tokens:
-                            self.on_tokens(dict(self.tokens))
+                # token/refreshToken are HttpOnly cookies at /api/; the
+                # __Host cookie is only the browser-visible session marker.
+                # Keep all three, with exact host/path checks and account isolation.
+                updated = dict(self.cookies)
+                if request_cookies == self.cookies:
+                    for name, cookie in getattr(response, "cookies", {}).items():
+                        if name not in AUTH_COOKIES or not cookie["secure"]:
+                            continue
+                        domain = cookie["domain"].lstrip(".").lower()
+                        if name == SESSION_COOKIE:
+                            valid_scope = not domain and cookie["path"] == "/"
+                        else:
+                            valid_scope = (domain in ("", "app.zenbi.dk")
+                                           and cookie["path"] in ("/api/", "/"))
+                        if not valid_scope:
+                            continue
+                        if cookie.value and cookie["max-age"] != "0":
+                            updated[name] = cookie.value
+                        else:
+                            updated.pop(name, None)
+                    if updated != self.cookies:
+                        self.cookies = updated
+                        if self.tokens:
+                            self.tokens["cookies"] = dict(updated)
+                            if self.on_tokens:
+                                self.on_tokens(dict(self.tokens))
                 if response.status == 401:
-                    raise AuthenticationError("Authentication rejected")
+                    reason = "session_rejected" if path != AUTH_PATH + "authenticate" else "invalid_auth"
+                    raise AuthenticationError("Authentication rejected", reason)
                 if response.status == 403:
                     raise PermissionError("Permission denied")
                 if response.status == 429:
@@ -112,7 +129,7 @@ class ZenbiClient:
             raise AuthenticationError("Password must be changed on Zenbi's website")
         max_age = response.get("maxAge")
         cookie_login = (isinstance(max_age, (int, float)) and not isinstance(max_age, bool)
-                        and max_age > 0 and bool(self.cookies.get(SESSION_COOKIE)))
+                        and max_age > 0 and AUTH_COOKIES.issubset(self.cookies))
         if response.get("token") and (response.get("refreshToken") or cookie_login):
             metadata = claims(response["token"])
             if not isinstance(metadata.get("usr"), str) or not isinstance(metadata.get("org"), str):
@@ -151,7 +168,7 @@ class ZenbiClient:
                 raise AuthenticationError("Login required")
             cookie_auth = "maxAge" in self.tokens
             if cookie_auth:
-                if not self.cookies.get(SESSION_COOKIE):
+                if not AUTH_COOKIES.issubset(self.cookies):
                     raise AuthenticationError("Zenbi session expired; log in again")
                 expiry = self.tokens.get("expires_at", 0)
                 # Avoid renewing on every request when Zenbi issues a short lease.
