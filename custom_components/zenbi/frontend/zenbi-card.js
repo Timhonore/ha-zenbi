@@ -1,5 +1,5 @@
 /* Zenbi Card — no external dependencies. MIT; official icon retains Zenbi's rights. */
-const VERSION = "1.2.6";
+const VERSION = "1.2.7";
 const esc = (v) =>
   String(v ?? "").replace(
     /[&<>"']/g,

@@ -4,8 +4,8 @@
 
 [![Validate](https://github.com/Timhonore/ha-zenbi/actions/workflows/validate.yml/badge.svg)](https://github.com/Timhonore/ha-zenbi/actions/workflows/validate.yml)
 
-**Udgivelse v.1.2.6 — uofficiel integration.**
-HA, diagnostik og card bruger det interne versionsnummer `1.2.6`.
+**Udgivelse v.1.2.7 — uofficiel integration.**
+HA, diagnostik og card bruger det interne versionsnummer `1.2.7`.
 
 Henter lektier, opgaver, ugeplaner, kalender, beskeder og opslag fra den konto,
 du selv har adgang til på `app.zenbi.dk`. Installeres gennem HACS som et custom
@@ -21,6 +21,16 @@ repository: **https://github.com/Timhonore/ha-zenbi**.
 
 Zenbis officielle appikon er inkluderet. Lokale brandikoner vises i Home
 Assistant fra version 2026.3; tidligere versioner kan vise standardikon.
+
+## Nyt i 1.2.7
+
+- Fagpåmindelses-blueprinten kan overvåge flere børnekalendere og sende til
+  flere telefoner i én automation. Ét matchende barn giver én påmindelse til
+  hver telefon, uanset antal timer. Barnets navn hentes fra kalenderen.
+- De tidligere enkeltvalg virker stadig efter genimport. Nye flervalg har
+  forrang, så en tidligere telefon ikke utilsigtet fortsætter som modtager.
+- Opdater integrationen og genimporter blueprinten. HACS opdaterer ikke den
+  allerede importerede blueprint i din HA automatisk.
 
 ## Nyt i 1.2.6
 
@@ -190,7 +200,7 @@ fra HA's entitetsregister; du behøver ikke kende deres entity-id'er.
 
 **Installér kortet:**
 
-1. Opdater Zenbi til **1.2.6** i HACS og genstart HA.
+1. Opdater Zenbi til **1.2.7** i HACS og genstart HA.
 2. Aktivér avanceret tilstand på din HA-profil, hvis Ressourcer ikke vises.
 3. Åbn **Indstillinger → Dashboards → ⋮ → Ressourcer** og tilføj
    `/zenbi-card/zenbi-card.js` som **JavaScript Module**.
@@ -280,26 +290,40 @@ Screenshots viser demodata. Kortet skal stadig prøves med din faktiske HA-insta
 
 ## Påmindelse om idræt dagen før
 
-Skoleskemaets kalenderpunkter kan bruges til automationer uden en ekstra sensor.
 Blueprinten [Zenbi - fagpåmindelse](blueprints/automation/zenbi_subject_reminder.yaml)
-henter hele morgendagens skema og sender én påmindelse pr. barn/fag ved et valgt
-klokkeslæt. Standard: **18:00**, fag **idræt**. Flere idrætstimer samme dag giver
-én besked med første starttid.
+overvåger flere børn og sender til flere telefoner fra én automation.
+Standard: **kl. 18 dagen før**, fag **idræt**.
 
-[Importer blueprinten i HA](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FTimhonore%2Fha-zenbi%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fzenbi_subject_reminder.yaml).
-Opret én automation pr. barn. Vælg barnets **Kalender**, indtast barnets navn og
-vælg telefonen, som skal modtage påmindelsen. Vælg ikke **Lektiefrister** eller
-kontoens egen kalender. Navne og telefon-id'er vælges lokalt i din HA.
-Fag, klokkeslæt og huskebesked kan ændres i formularen.
+1. Opdater Zenbi-integrationen til **1.2.7** eller nyere i HACS, og genstart HA.
+2. [Importer eller genimporter blueprinten](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FTimhonore%2Fha-zenbi%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fzenbi_subject_reminder.yaml).
+   HACS opdaterer ikke din allerede importerede blueprint automatisk.
+3. Vælg **Børnenes Zenbi-kalendere**. Vælg barnets **Kalender**, ikke
+   **Lektiefrister** eller kontoens egen kalender.
+4. Vælg én eller flere telefoner under **Telefoner der skal modtage påmindelserne**.
+5. Vælg fag, tidspunkt og huskebesked, og gem automationen.
+
+Alle valgte telefoner får én besked for hvert barn med det valgte fag i morgen.
+Flere timer samme dag giver én påmindelse med første starttid. Barnets navn
+hentes fra kalenderens navn. Kalender- og telefonvalg gemmes kun i din HA.
+Et barn uden faget stopper ikke de andre børns påmindelser. Kalenderfejl vises
+på det pågældende trin i sporingen; øvrige kalendere kontrolleres fortsat.
+En fejl ved en telefon forhindrer ikke forsøg på de øvrige telefoner.
+
+Tidligere automationer bevarer deres enkeltvalg under **Tidligere enkeltvalg**.
+Udfyldes de nye flervalgsfelter, bruges de i stedet for de tidligere valg.
+Et tidligere angivet barnenavn bruges kun, når der overvåges én kalender.
+Du kan samle familien i én automation; behold ikke samtidig andre aktive
+påmindelser for de samme børn/fag/modtagere, hvis du vil undgå dobbeltbeskeder.
 
 Eksempel: **Barnet har idræt i morgen kl. 08:00. Husk idrætstøj, sko og håndklæde.**
-Du kan også oprette en anden automation til fx musik eller svømning.
-Blueprinten importeres særskilt; en opdatering af integrationen er ikke nødvendig.
-Der aktiveres først notifikationer, når du selv opretter automationerne i HA.
+Der sendes kun en påmindelse, hvis faget faktisk findes i morgendagens kalender.
+Notifikationen kan testes ved midlertidigt at vælge et fag fra i morgen og
+køre automationens handlinger. Der sendes ikke automatisk noget ved import.
 
-Blueprintens YAML og templates er kontrolleret med syntetiske events, flere
-idrætsperioder, hele-dags-events og tidszoneskift. Den er endnu ikke kørt i
-brugerens HA. Kilde: [HA kalenderhandlinger](https://www.home-assistant.io/integrations/calendar/).
+Blueprinten bruger handlingen `zenbi.send_reminder` til at slå de valgte
+Companion App-enheder op i HA's eksisterende registrering. Telefonnavne og
+service-id'er gættes ikke. Der kræves ingen manuelt opsat notifikationsgruppe.
+Den tidligere blueprint med ét barn og én telefon kan stadig bruges uændret.
 
 ## Hvad er testet?
 
@@ -307,7 +331,7 @@ brugerens HA. Kilde: [HA kalenderhandlinger](https://www.home-assistant.io/integ
 - API-ruter, HTTP-metoder, loginfelter, tokenfornyelse, samlinger, tilknytning
   via grupper og kalendergentagelser er kortlagt fra offentlig JavaScript
   leveret af webappen den 11. oktober 2026.
-- 50 automatiske tests med kunstige data er bestået: tokenfornyelse, HTTP-fejl,
+- 62 automatiske tests med kunstige data er bestået: tokenfornyelse, HTTP-fejl,
   gruppefiltrering, tekstkonvertering, gentagelser, flytninger, sommertid og
   delvise kildefejl.
 - Python-filer er syntakskontrolleret.

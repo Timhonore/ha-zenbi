@@ -1,0 +1,23 @@
+send_reminder:
+  name: Send påmindelse
+  description: Sender en påmindelse til de valgte telefoner via Companion App.
+  fields:
+    device_ids:
+      name: Telefoner
+      required: true
+      selector:
+        device:
+          multiple: true
+          filter:
+            - integration: mobile_app
+    title:
+      name: Titel
+      default: Zenbi
+      selector:
+        text:
+    message:
+      name: Besked
+      required: true
+      selector:
+        text:
+          multiline: true

@@ -12,6 +12,7 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from .api import AuthenticationError, ZenbiClient, stored_auth
 from .const import CONF_DEVICE_ID, DOMAIN
 from .coordinator import ZenbiCoordinator
+from .notifications import async_register_notifications
 from .websocket import ws_timetable, ws_weekly_plans
 
 PLATFORMS = [Platform.SENSOR, Platform.CALENDAR, Platform.BUTTON]
@@ -26,6 +27,7 @@ async def async_setup(hass, config):
     ])
     websocket_api.async_register_command(hass, ws_weekly_plans)
     websocket_api.async_register_command(hass, ws_timetable)
+    async_register_notifications(hass)
     return True
 
 
