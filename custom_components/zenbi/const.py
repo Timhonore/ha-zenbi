@@ -1,7 +1,7 @@
 """Zenbi constants. Public web-app contracts inspected 2026-10-11."""
 DOMAIN = "zenbi"
 BASE_URL = "https://app.zenbi.dk"
-VERSION = "1.2.4"
+VERSION = "1.2.5"
 ZERO_GUID = "00000000-0000-0000-0000-000000000000"
 CONF_DEVICE_ID = "device_id"
 CONF_ORGANIZATION_ID = "organization_id"

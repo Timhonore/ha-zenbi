@@ -4,8 +4,8 @@
 
 [![Validate](https://github.com/Timhonore/ha-zenbi/actions/workflows/validate.yml/badge.svg)](https://github.com/Timhonore/ha-zenbi/actions/workflows/validate.yml)
 
-**Udgivelse v.1.2.4 — uofficiel integration.**
-HA, diagnostik og card bruger det interne versionsnummer `1.2.4`.
+**Udgivelse v.1.2.5 — uofficiel integration.**
+HA, diagnostik og card bruger det interne versionsnummer `1.2.5`.
 
 Henter lektier, opgaver, ugeplaner, kalender, beskeder og opslag fra den konto,
 du selv har adgang til på `app.zenbi.dk`. Installeres gennem HACS som et custom
@@ -21,6 +21,17 @@ repository: **https://github.com/Timhonore/ha-zenbi**.
 
 Zenbis officielle appikon er inkluderet. Lokale brandikoner vises i Home
 Assistant fra version 2026.3; tidligere versioner kan vise standardikon.
+
+## Nyt i 1.2.5
+
+- Login og automatisk fornyelse understøtter Zenbis nye cookie-session.
+  Den aktuelle webapp returnerer `token` og `maxAge` uden `refreshToken`.
+- Sessionen gemmes i HA og holdes adskilt mellem konti. Fornyelse bruger
+  sessionscookien med tom request-body, som Zenbis aktuelle webapp.
+- **Opdater i HACS, genstart HA og genautentificer Zenbi én gang.** Gamle
+  bearer-/refresh-tokens kan ikke erstatte den nye sessionscookie. Behold
+  integrationen, så entiteter og automationer bevares.
+- Sessionens varighed følger Zenbis `maxAge`. Adgangskoden gemmes ikke.
 
 ## Nyt i 1.2.4
 
@@ -170,7 +181,7 @@ fra HA's entitetsregister; du behøver ikke kende deres entity-id'er.
 
 **Installér kortet:**
 
-1. Opdater Zenbi til **1.2.4** i HACS og genstart HA.
+1. Opdater Zenbi til **1.2.5** i HACS og genstart HA.
 2. Aktivér avanceret tilstand på din HA-profil, hvis Ressourcer ikke vises.
 3. Åbn **Indstillinger → Dashboards → ⋮ → Ressourcer** og tilføj
    `/zenbi-card/zenbi-card.js` som **JavaScript Module**.
@@ -287,7 +298,7 @@ brugerens HA. Kilde: [HA kalenderhandlinger](https://www.home-assistant.io/integ
 - API-ruter, HTTP-metoder, loginfelter, tokenfornyelse, samlinger, tilknytning
   via grupper og kalendergentagelser er kortlagt fra offentlig JavaScript
   leveret af webappen den 11. oktober 2026.
-- 41 automatiske tests med kunstige data er bestået: tokenfornyelse, HTTP-fejl,
+- 48 automatiske tests med kunstige data er bestået: tokenfornyelse, HTTP-fejl,
   gruppefiltrering, tekstkonvertering, gentagelser, flytninger, sommertid og
   delvise kildefejl.
 - Python-filer er syntakskontrolleret.
@@ -309,9 +320,12 @@ kører på GitHub; se repositoryets Actions-side for deres aktuelle status.
 6. Vælg organisation/skole, hvis kontoen har flere.
 7. Vælg de børn/relationer, der skal oprettes entiteter for.
 
-Integrationen gemmer adgangstoken og refresh-token i HA's config entry; den
-gemmer ikke adgangskoden. Hvis Zenbi afviser eller udløber refresh-tokenet,
-beder HA om nyt login. Tokens er følsomme og indgår i normale HA-backups.
+Integrationen gemmer sessionscookie, routing-token og sessionens udløbstid i
+HA's config entry; den gemmer ikke adgangskoden. Zenbis nye login bruger ikke
+længere det tidligere refresh-token. Sessionen fornyes automatisk via Zenbis
+refresh-endpoint og gemmes, så HA kan genstarte uden at miste den. Hvis Zenbi
+udløber eller tilbagekalder sessionen, kræves nyt login. Sessionscookies og
+tokens er følsomme og indgår i normale HA-backups.
 
 ## Entiteter
 

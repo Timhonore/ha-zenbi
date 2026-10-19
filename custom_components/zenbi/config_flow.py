@@ -1,6 +1,8 @@
 """UI setup, relation selection and reauthentication."""
 from __future__ import annotations
 
+import aiohttp
+
 try:
     import probatio as vol  # Newer Home Assistant schema library.
 except ImportError:
@@ -9,9 +11,9 @@ except ImportError:
 from homeassistant import config_entries
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.helpers import selector
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
-from .api import AuthenticationError, LoginChallenge, ZenbiClient, ZenbiError
+from .api import AuthenticationError, LoginChallenge, ZenbiClient, ZenbiError, stored_auth
 from .const import (CONF_CHILDREN, CONF_DEVICE_ID, CONF_DAYS, CONF_INTERVAL,
                     CONF_ORGANIZATION_ID, DEFAULT_DAYS, DEFAULT_INTERVAL, DOMAIN)
 from .models import SchemaError, guid
@@ -41,8 +43,8 @@ class ZenbiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self.hass.config_entries.async_update_entry(entry, data={**entry.data, **tokens})
 
             self.client = ZenbiClient(
-                async_get_clientsession(self.hass), entry.data[CONF_DEVICE_ID],
-                {k: entry.data[k] for k in ("token", "refreshToken")}, save_tokens)
+                async_create_clientsession(self.hass, cookie_jar=aiohttp.DummyCookieJar()), entry.data[CONF_DEVICE_ID],
+                stored_auth(entry.data), save_tokens)
         try:
             self._children, _, self._school = await self.client.discover()
         except AuthenticationError:
@@ -55,7 +57,7 @@ class ZenbiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
         if user_input is not None:
             existing = self._get_reauth_entry() if self.source == config_entries.SOURCE_REAUTH else None
-            self.client = ZenbiClient(async_get_clientsession(self.hass),
+            self.client = ZenbiClient(async_create_clientsession(self.hass, cookie_jar=aiohttp.DummyCookieJar()),
                                       existing.data.get(CONF_DEVICE_ID) if existing else None)
             try:
                 await self.client.login(user_input[CONF_USERNAME].strip(), user_input[CONF_PASSWORD],
