@@ -4,8 +4,8 @@
 
 [![Validate](https://github.com/Timhonore/ha-zenbi/actions/workflows/validate.yml/badge.svg)](https://github.com/Timhonore/ha-zenbi/actions/workflows/validate.yml)
 
-**Udgivelse v.1.2.3 — uofficiel integration.**
-HA, diagnostik og card bruger det interne versionsnummer `1.2.3`.
+**Udgivelse v.1.2.4 — uofficiel integration.**
+HA, diagnostik og card bruger det interne versionsnummer `1.2.4`.
 
 Henter lektier, opgaver, ugeplaner, kalender, beskeder og opslag fra den konto,
 du selv har adgang til på `app.zenbi.dk`. Installeres gennem HACS som et custom
@@ -21,6 +21,15 @@ repository: **https://github.com/Timhonore/ha-zenbi**.
 
 Zenbis officielle appikon er inkluderet. Lokale brandikoner vises i Home
 Assistant fra version 2026.3; tidligere versioner kan vise standardikon.
+
+## Nyt i 1.2.4
+
+- Vælg **Standardbarn** i korteditoren. Kortet åbner med det valgte barn,
+  fx i en popup. Hvert kort har sit eget valg, og du kan stadig skifte barn.
+- YAML: `default_child: <barnets-id>`; uden feltet vises **Alle børn**.
+  Manuelle `children` bruger deres `id` (eller `custom-0`, `custom-1`, osv.).
+- Et utilgængeligt barn falder tilbage til **Alle børn**. Beskeder og opslag
+  er fortsat fælles for kontoen. Opdateringer nulstiller ikke et manuelt valg.
 
 ## Nyt i 1.2.3
 
@@ -161,7 +170,7 @@ fra HA's entitetsregister; du behøver ikke kende deres entity-id'er.
 
 **Installér kortet:**
 
-1. Opdater Zenbi til **1.2.3** i HACS og genstart HA.
+1. Opdater Zenbi til **1.2.4** i HACS og genstart HA.
 2. Aktivér avanceret tilstand på din HA-profil, hvis Ressourcer ikke vises.
 3. Åbn **Indstillinger → Dashboards → ⋮ → Ressourcer** og tilføj
    `/zenbi-card/zenbi-card.js` som **JavaScript Module**.

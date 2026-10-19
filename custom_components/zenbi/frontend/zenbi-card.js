@@ -1,5 +1,5 @@
 /* Zenbi Card — no external dependencies. MIT; official icon retains Zenbi's rights. */
-const VERSION = "1.2.3";
+const VERSION = "1.2.4";
 const esc = (v) =>
   String(v ?? "").replace(
     /[&<>"']/g,
@@ -183,6 +183,8 @@ class ZenbiCard extends HTMLElement {
       (!Array.isArray(config.topics) || !config.topics.length ||
         config.topics.some(id => !tabs.some(([key]) => key === id))))
       throw new Error("topics skal være en liste med mindst ét gyldigt emne.");
+    if (config.default_child !== undefined && typeof config.default_child !== "string")
+      throw new Error("default_child skal være barnets id eller all.");
     this._config = {
       title: "Skoleoverblik",
       max_items: 5,
@@ -197,7 +199,7 @@ class ZenbiCard extends HTMLElement {
     this._weeklyGeneration++;
     this._calendarKey = null;
     this._calendarGeneration++;
-    this._selected = "all";
+    this._selected = this._config.default_child || "all";
     this._showAll = false;
     this._render();
     this._discover();
@@ -228,6 +230,15 @@ class ZenbiCard extends HTMLElement {
     return { columns: 12, min_columns: 6 };
   }
   connectedCallback() {
+    if (this._config) {
+      this._selected = this._config.default_child || "all";
+      this._calendarKey = null;
+      this._calendarGeneration++;
+      this._showAll = false;
+      this._render();
+      this._loadCalendar();
+      this._loadWeek();
+    }
     this._timer = setInterval(() => {
       this._render();
       this._loadCalendar();
@@ -860,9 +871,13 @@ class ZenbiCardEditor extends HTMLElement {
         : key === "max_items"
           ? Math.max(1, Math.min(50, Number(e.target.value) || 5))
           : e.target.value;
+    if (key === "config_entry" && value !== (config.config_entry || "")) {
+      delete config.default_child;
+    }
     if (value === "") delete config[key];
     else config[key] = value;
     this._config = config;
+    if (key === "config_entry") this._render();
     this._emitConfig();
   }
   _emitConfig() {
@@ -893,12 +908,16 @@ class ZenbiCardEditor extends HTMLElement {
     const topics = selectedTopics(this._config);
     const people = Object.entries(this._hass?.states || {}).filter(([id]) => id.startsWith("person."));
     const children = (this._rows || []).flatMap(row => {
-      if (this._config.config_entry && row.config_entry_id !== this._config.config_entry) return [];
+      const entry = this._config.config_entry || entries[0];
+      if (entry && row.config_entry_id !== entry) return [];
       const match = row.unique_id?.match(/:homework:([^:]+)$/);
       return match && match[1] !== "all" ? [{id:match[1],name:(row.original_name || row.name || "Barn").replace(/\s+Lektier$/i, "")}] : [];
     });
-    const uniqueChildren = [...new Map(children.map(child => [child.id,child])).values()];
-    this.shadowRoot.innerHTML = `<style>:host{display:block}label{display:block;margin:16px 0;font-size:14px}input:not([type=checkbox]),select{display:block;width:100%;box-sizing:border-box;margin-top:6px;padding:12px;border:1px solid var(--divider-color,#ccc);border-radius:8px;background:var(--card-background-color);color:var(--primary-text-color);font:inherit}fieldset{border:1px solid var(--divider-color,#ccc);border-radius:8px;margin-top:16px}legend{padding:0 6px}p{font-size:13px;line-height:1.6;color:var(--secondary-text-color)}input:focus,select:focus{outline:2px solid var(--primary-color)}</style><label>Titel<input data-key="title" value="${esc(this._config.title || "Skoleoverblik")}"></label><label>Zenbi-konto<select data-key="config_entry"><option value="">Automatisk (første konto)</option>${entries.map((id, i) => `<option value="${esc(id)}" ${this._config.config_entry === id ? "selected" : ""}>${esc(this._entryLabel(id, i))}</option>`).join("")}</select></label><label>Antal elementer før “Vis flere”<input data-key="max_items" type="number" min="1" max="50" value="${esc(this._config.max_items || 5)}"></label><fieldset><legend>Emner på kortet</legend>${tabs.map(([id, label]) => `<label><input data-topic="${id}" type="checkbox" ${topics.includes(id) ? "checked" : ""} ${topics.length === 1 && topics.includes(id) ? "disabled" : ""}> ${label}</label>`).join("")}</fieldset>${uniqueChildren.length ? `<fieldset><legend>Børnenes profilbilleder</legend>${uniqueChildren.map(child => `<label>${esc(child.name)}<select data-person-child="${esc(child.id)}"><option value="">Zenbi-billede / initialer</option>${people.map(([id, state]) => `<option value="${esc(id)}" ${this._config.persons?.[child.id] === id ? "selected" : ""}>${esc(state.attributes.friendly_name || id)}</option>`).join("")}</select></label>`).join("")}</fieldset><p>Billede og klasse hentes fra Zenbi. Vælg eventuelt en HA-person for at bruge dens billede i stedet. Personens lokation ændres ikke.</p>` : ""}<p>Vælg mindst ét emne. Kun de valgte faner og tilhørende tællere vises.</p><p>Børn og entiteter findes automatisk fra Zenbi-integrationen. Beskeder og opslag er fælles for kontoen. Du kan også angive entiteter og børn manuelt i YAML; se vejledningen på GitHub.</p>`;
+    const choices = this._config.children
+      ? this._config.children.map((child, i) => ({id:child.id || `custom-${i}`,name:child.name || "Barn"}))
+      : children;
+    const uniqueChildren = [...new Map(choices.map(child => [child.id,child])).values()];
+    this.shadowRoot.innerHTML = `<style>:host{display:block}label{display:block;margin:16px 0;font-size:14px}input:not([type=checkbox]),select{display:block;width:100%;box-sizing:border-box;margin-top:6px;padding:12px;border:1px solid var(--divider-color,#ccc);border-radius:8px;background:var(--card-background-color);color:var(--primary-text-color);font:inherit}fieldset{border:1px solid var(--divider-color,#ccc);border-radius:8px;margin-top:16px}legend{padding:0 6px}p{font-size:13px;line-height:1.6;color:var(--secondary-text-color)}input:focus,select:focus{outline:2px solid var(--primary-color)}</style><label>Titel<input data-key="title" value="${esc(this._config.title || "Skoleoverblik")}"></label><label>Zenbi-konto<select data-key="config_entry"><option value="">Automatisk (første konto)</option>${entries.map((id, i) => `<option value="${esc(id)}" ${this._config.config_entry === id ? "selected" : ""}>${esc(this._entryLabel(id, i))}</option>`).join("")}</select></label><label>Standardbarn<select data-key="default_child"><option value="">Alle børn</option>${this._config.default_child && this._config.default_child !== "all" && !uniqueChildren.some(child => child.id === this._config.default_child) ? `<option value="${esc(this._config.default_child)}" selected>Valgt barn (ikke tilgængeligt)</option>` : ""}${uniqueChildren.map(child => `<option value="${esc(child.id)}" ${this._config.default_child === child.id ? "selected" : ""}>${esc(child.name)}</option>`).join("")}</select></label><p>Barnet vælges, når kortet åbnes. Du kan stadig skifte barn i kortet. Beskeder og opslag er fælles for kontoen.</p><label>Antal elementer før “Vis flere”<input data-key="max_items" type="number" min="1" max="50" value="${esc(this._config.max_items || 5)}"></label><fieldset><legend>Emner på kortet</legend>${tabs.map(([id, label]) => `<label><input data-topic="${id}" type="checkbox" ${topics.includes(id) ? "checked" : ""} ${topics.length === 1 && topics.includes(id) ? "disabled" : ""}> ${label}</label>`).join("")}</fieldset>${uniqueChildren.length ? `<fieldset><legend>Børnenes profilbilleder</legend>${uniqueChildren.map(child => `<label>${esc(child.name)}<select data-person-child="${esc(child.id)}"><option value="">Zenbi-billede / initialer</option>${people.map(([id, state]) => `<option value="${esc(id)}" ${this._config.persons?.[child.id] === id ? "selected" : ""}>${esc(state.attributes.friendly_name || id)}</option>`).join("")}</select></label>`).join("")}</fieldset><p>Billede og klasse hentes fra Zenbi. Vælg eventuelt en HA-person for at bruge dens billede i stedet. Personens lokation ændres ikke.</p>` : ""}<p>Vælg mindst ét emne. Kun de valgte faner og tilhørende tællere vises.</p><p>Børn og entiteter findes automatisk fra Zenbi-integrationen. Beskeder og opslag er fælles for kontoen. Du kan også angive entiteter og børn manuelt i YAML; se vejledningen på GitHub.</p>`;
   }
 }
 if (!customElements.get("zenbi-card"))

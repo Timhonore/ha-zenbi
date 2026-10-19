@@ -191,7 +191,7 @@ const root = path.resolve(__dirname, "..");
     card.hass = hass;
     document.body.append(card);
   });
-  const card = page.locator("zenbi-card");
+  const card = page.locator("#card");
   await card.getByRole("button", { name: "Freja", exact: true }).waitFor();
   assert.equal(await card.locator(".number").first().textContent(), "3");
   assert.equal(
@@ -437,6 +437,39 @@ const root = path.resolve(__dirname, "..");
   await page.evaluate(() => card.setConfig({type:"custom:zenbi-card",show_posts:false}));
   assert.equal(await card.locator("nav button[data-tab=posts]").count(), 0,
     "Legacy show_posts remains supported");
+  await page.locator("zenbi-card-editor select[data-key=default_child]").selectOption("freja");
+  assert.equal(await page.evaluate(() => editorConfig.default_child), "freja");
+  await page.evaluate(() => {
+    card.setConfig({type:"custom:zenbi-card",default_child:"freja"});
+    card._tab = "homework";
+    card._render();
+  });
+  await card.locator("button[data-child=freja].active").waitFor();
+  assert.equal(await card.locator("button[data-child=all].active").count(), 0);
+  await card.locator("button[data-child=oscar]").click();
+  await page.evaluate(() => { card.hass = {...hass}; card._render(); });
+  assert.equal(await card.locator("button[data-child=oscar].active").count(), 1,
+    "Live updates preserve manual selection");
+  await page.evaluate(() => {card.remove(); document.body.append(card);});
+  await card.locator("button[data-child=freja].active").waitFor();
+  await page.evaluate(() => {
+    window.otherCard = document.createElement("zenbi-card");
+    otherCard.setConfig({type:"custom:zenbi-card",default_child:"oscar"});
+    otherCard.hass = hass;
+    document.body.append(otherCard);
+  });
+  await page.locator("zenbi-card").nth(1).locator("button[data-child=oscar].active").waitFor();
+  assert.equal(await card.locator("button[data-child=freja].active").count(), 1,
+    "Each popup/card has its own default");
+  await page.evaluate(() => otherCard.remove());
+  await page.evaluate(() => card.setConfig({type:"custom:zenbi-card",default_child:"missing"}));
+  assert.equal(await page.evaluate(() => card._view().active.id), "all",
+    "Removed children fall back to all without changing config");
+  await page.evaluate(() => card.setConfig({type:"custom:zenbi-card",default_child:"freja",children:[
+    {id:"freja",name:"Freja",homework_entity:"sensor.demo_homework_freja"}]}));
+  assert.equal(await page.evaluate(() => card._view().active.id), "freja");
+  await page.locator("zenbi-card-editor select[data-key=default_child]").selectOption("");
+  assert.equal(await page.evaluate(() => editorConfig.default_child), undefined);
   await page.evaluate(() => {
     card.setConfig({type:"custom:zenbi-card",max_items:2});
     card._tab = "homework";
